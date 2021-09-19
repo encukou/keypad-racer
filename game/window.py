@@ -41,7 +41,7 @@ print("platform:", sys.platform)
 print("code:", ctx.version_code)
 
 ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
-#ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
+ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
 prog = ctx.program(
     vertex_shader=resources.get_shader('shaders/vertex.glsl'),

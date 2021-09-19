@@ -1,48 +1,48 @@
 #version 150 core
 
-in vec3 v_color[];
-out vec3 g_color;
+uniform vec2 resolution;
+uniform float antialias;
 
-in vec2 v_p0[];
-in vec2 v_p1[];
-in vec2 v_p[];
-out vec2 g_p0;
-out vec2 g_p1;
-out vec2 g_p;
-
-in float v_alpha[];
 in float v_thickness[];
-out float g_alpha;
+in vec4 v_color[];
 out float g_thickness;
+out float g_distance;
+out vec4 g_color;
 
-layout(triangles) in;
+layout(lines) in;
 layout(triangle_strip, max_vertices = 4) out;
+
+void set_g_pervertex(int n) {
+    g_thickness = v_thickness[n];
+    g_color = v_color[n];
+}
 
 void main()
 {
-    g_color = v_color[0];
-    g_p0 = v_p0[0];
-    g_p1 = v_p1[0];
-    g_p = v_p[0];
-    g_alpha = v_alpha[0];
-    g_thickness = v_thickness[0];
-    gl_Position = gl_in[0].gl_Position;
+    vec2 p0 = gl_in[0].gl_Position.xy;
+    vec2 p1 = gl_in[1].gl_Position.xy;
+
+    float half_quad_thickness = v_thickness[0]/2.0 + antialias;
+
+    vec2 direction = normalize(p1-p0);
+    vec2 dir_side = vec2(-direction.y, direction.x);
+
+    vec2 to_side = dir_side * half_quad_thickness / resolution;
+    set_g_pervertex(0);
+    g_distance = half_quad_thickness;
+    gl_Position = vec4(p0 + to_side, 0.0, 1.0);
+    EmitVertex();
+    g_distance = -half_quad_thickness;
+    gl_Position = vec4(p0 - to_side, 0.0, 1.0);
     EmitVertex();
 
-    g_color = v_color[1];
-    g_p0 = v_p0[1];
-    g_p1 = v_p1[1];
-    g_p = v_p[1];
-    g_thickness = v_thickness[1];
-    gl_Position = gl_in[1].gl_Position;
+    to_side = dir_side * half_quad_thickness / resolution;
+    set_g_pervertex(1);
+    g_distance = half_quad_thickness;
+    gl_Position = vec4(p1 + to_side, 0.0, 1.0);
     EmitVertex();
-
-    g_color = v_color[2];
-    g_p0 = v_p0[2];
-    g_p1 = v_p1[2];
-    g_p = v_p[2];
-    g_thickness = v_thickness[2];
-    gl_Position = gl_in[2].gl_Position;
+    g_distance = -half_quad_thickness;
+    gl_Position = vec4(p1 - to_side, 0.0, 1.0);
     EmitVertex();
 
     EndPrimitive();

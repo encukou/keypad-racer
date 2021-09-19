@@ -20,10 +20,10 @@ class Line:
 
         vertices = numpy.array(
             (
-                (-.25, -.25, .25, .25, 0, 1),
-                (-.25, -.25, .25, .25, 0, 0),
-                (-.25, -.25, .25, .25, 1, 1),
-                (-.25, -.25, .25, .25, 1, 0),
+                (-.25, -.25),
+                (.25, .25),
+                (.25, -.25),
+                (.4, -.8),
             ),
             dtype='f4',
         )
@@ -33,12 +33,13 @@ class Line:
         self.vao = ctx.vertex_array(
             prog,
             [
-                (vbo, '2f4 2f4 2f4', 'p0', 'p1', 'uv'),
+                (vbo, '2f4', 'point'),
                 (thick_vbo, '1i1 /r', 'thickness'),
             ],
         )
+        print(sorted(prog))
         prog['antialias'] = 2.0
         prog['resolution'] = 800, 600
 
     def draw(self):
-        self.vao.render(moderngl.TRIANGLE_STRIP)
+        self.vao.render(moderngl.LINE_STRIP)
