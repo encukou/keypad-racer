@@ -18,12 +18,10 @@ class Window(pyglet.window.Window):
             forward_compatible=True,
             #depth_size=24,
             double_buffer=True,
-            sample_buffers=1,
-            samples=16,
         )
         super().__init__(config=config, caption='pyweek game', width=800, height=600)
         if 'GAME_DEVEL_ENVIRON' in os.environ:
-            self.set_location(150, 150)
+            self.set_location(200, 800)
 
     def on_resize(self, width, height):
         pass
@@ -42,9 +40,12 @@ print("python:", sys.version)
 print("platform:", sys.platform)
 print("code:", ctx.version_code)
 
+ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
+#ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
+
 prog = ctx.program(
-    vertex_shader=resources.get_text('shaders/vertex.glsl'),
-    fragment_shader=resources.get_text('shaders/fragment.glsl'),
+    vertex_shader=resources.get_shader('shaders/vertex.glsl'),
+    fragment_shader=resources.get_shader('shaders/fragment.glsl'),
 )
 
 x = numpy.linspace(-1.0, 1.0, 50)
@@ -57,10 +58,9 @@ vertices = numpy.dstack([x, y, r, g, b])
 vbo = ctx.buffer(vertices.astype('f4').tobytes())
 vao = ctx.vertex_array(prog, vbo, 'in_vert', 'in_color')
 
-fbo = ctx.simple_framebuffer((512, 512))
-fbo.use()
-fbo.clear(0.0, 0.0, 0.0, 1.0)
-vao.render(moderngl.LINE_STRIP)
+from .line import Line
+
+line = Line(ctx, 0, 0, 1, 1, thickness=5)
 
 @window.event
 def on_draw():
@@ -68,5 +68,6 @@ def on_draw():
     fbo.use()
     ctx.clear(0.0, 0.0, 0.3, 0.0)
     vao.render(moderngl.LINE_STRIP)
+    line.draw()
 
 pyglet.app.run()
