@@ -1,5 +1,7 @@
 import numpy
 import moderngl
+import time
+import math
 
 from . import resources
 
@@ -22,7 +24,8 @@ class Line:
             (
                 (-.25, -.25),
                 (-.25, -.25),
-                (.25, .25),
+                (-.25, -.25),
+                (.0, .0),
                 (.25, -.25),
                 (.4, -.8),
                 (.4, -.8),
@@ -30,18 +33,24 @@ class Line:
             dtype='f4',
         )
 
-        vbo = ctx.buffer(vertices.tobytes())
-        thick_vbo = ctx.buffer(bytes([30]))
+        self.vbo = ctx.buffer(vertices.tobytes())
+        thick_vbo = ctx.buffer(bytes([60]))
         self.vao = ctx.vertex_array(
             prog,
             [
-                (vbo, '2f4', 'point'),
+                (self.vbo, '2f4', 'point'),
                 (thick_vbo, '1i1 /r', 'thickness'),
             ],
         )
         print(sorted(prog))
         prog['antialias'] = 2.0
-        prog['resolution'] = 800, 600
+        prog['resolution'] = 600, 600
+
+    def set_xy(self, x, y):
+        print(x, y)
+        arr = numpy.array([(x-300)/300, (y-300)/300], dtype='f4')
+        self.vbo.write(arr.tobytes(), offset=4*2*4)
 
     def draw(self):
+        #t = time.time()
         self.vao.render(moderngl.LINE_STRIP_ADJACENCY)

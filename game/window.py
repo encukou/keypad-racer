@@ -19,7 +19,7 @@ class Window(pyglet.window.Window):
             #depth_size=24,
             double_buffer=True,
         )
-        super().__init__(config=config, caption='pyweek game', width=800, height=600)
+        super().__init__(config=config, caption='pyweek game', width=600, height=600)
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)
 
@@ -43,21 +43,6 @@ print("code:", ctx.version_code)
 ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
 ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
-prog = ctx.program(
-    vertex_shader=resources.get_shader('shaders/vertex.glsl'),
-    fragment_shader=resources.get_shader('shaders/fragment.glsl'),
-)
-
-x = numpy.linspace(-1.0, 1.0, 50)
-y = numpy.random.rand(50) - 0.5
-r = numpy.ones(50)
-g = numpy.zeros(50)
-b = numpy.zeros(50)
-
-vertices = numpy.dstack([x, y, r, g, b])
-vbo = ctx.buffer(vertices.astype('f4').tobytes())
-vao = ctx.vertex_array(prog, vbo, 'in_vert', 'in_color')
-
 from .line import Line
 
 line = Line(ctx, 0, 0, 1, 1, thickness=5)
@@ -67,7 +52,18 @@ def on_draw():
     fbo = ctx.screen
     fbo.use()
     ctx.clear(0.0, 0.0, 0.3, 0.0)
-    vao.render(moderngl.LINE_STRIP)
     line.draw()
+
+def tick(dt):
+    pass
+pyglet.clock.schedule_interval(tick, 1/30)
+
+@window.event
+def on_mouse_press(x, y, button, mod):
+    line.set_xy(x, y)
+
+@window.event
+def on_mouse_motion(x, y, dx, dy):
+    line.set_xy(x, y)
 
 pyglet.app.run()
