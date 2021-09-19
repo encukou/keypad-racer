@@ -3,6 +3,7 @@ uniform float antialias;
 
 attribute float thickness;
 attribute vec2 point;
+attribute vec4 color;
 
 varying float v_thickness;
 varying vec4 v_color;
@@ -16,6 +17,6 @@ void main() {
         alpha = 1.0;
         v_thickness = thickness;
     }
-    v_color = vec4(0.0, 1.0, 0.0, alpha);
+    v_color = color;
     gl_Position = vec4(point, 0.0, 1.0);
 }

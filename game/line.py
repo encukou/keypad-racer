@@ -22,13 +22,12 @@ class Line:
 
         vertices = numpy.array(
             (
-                (-.25, -.25),
-                (-.25, -.25),
-                (-.25, -.25),
-                (.0, .0),
-                (.25, -.25),
-                (.4, -.8),
-                (.4, -.8),
+                (-.25, -.25, 0, 0, 0, 1),
+                (-.25, -.25, 0, 0, 0, 1),
+                (.0, .0, 1, 1, 1, 1),
+                (.25, -.25, 1, 0, 0, 1),
+                (.4, -.8, 1, 1, 1, 1),
+                (.4, -.8, 1, 1, 1, 1),
             ),
             dtype='f4',
         )
@@ -38,7 +37,7 @@ class Line:
         self.vao = ctx.vertex_array(
             prog,
             [
-                (self.vbo, '2f4', 'point'),
+                (self.vbo, '2f4 4f4', 'point', 'color'),
                 (thick_vbo, '1i1 /r', 'thickness'),
             ],
         )
@@ -49,7 +48,7 @@ class Line:
     def set_xy(self, x, y):
         print(x, y)
         arr = numpy.array([(x-300)/300, (y-300)/300], dtype='f4')
-        self.vbo.write(arr.tobytes(), offset=4*2*4)
+        self.vbo.write(arr.tobytes(), offset=4*6*3)
 
     def draw(self):
         #t = time.time()

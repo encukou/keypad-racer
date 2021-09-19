@@ -66,4 +66,5 @@ def on_mouse_press(x, y, button, mod):
 def on_mouse_motion(x, y, dx, dy):
     line.set_xy(x, y)
 
-pyglet.app.run()
+def run():
+    pyglet.app.run()
