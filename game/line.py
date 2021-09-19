@@ -15,6 +15,7 @@ class Line:
         prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/line_segment.vert'),
             fragment_shader=resources.get_shader('shaders/line_segment.frag'),
+            geometry_shader=resources.get_shader('shaders/line_segment.geom'),
         )
 
         vertices = numpy.array(

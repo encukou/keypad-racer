@@ -12,13 +12,15 @@ float distance(vec2 P, vec2 center, float radius)
 
 uniform float antialias;
 varying vec2 v_position;
-varying vec3 v_color;
+varying vec3 g_color;
 varying float v_thickness;
 varying float v_alpha;
 
 varying vec2 v_p0, v_p1, v_p;
 
 void main() {
+    gl_FragColor = vec4(g_color, 1.0);
+    return;
     float d = 0;
     vec2 p = v_p / v_thickness;
     gl_FragColor = vec4(1.0, p.y, p.x, 0.5);
@@ -32,9 +34,9 @@ void main() {
         d = abs(v_p.y) - v_thickness/2.0 + antialias/2.0;
     */
     if( d < 0)
-        gl_FragColor = vec4(v_color, 1.0);
+        gl_FragColor = vec4(g_color, 1.0);
     else if (d < antialias) {
         d = exp(-d*d);
-        gl_FragColor = vec4(v_color, d);
+        gl_FragColor = vec4(g_color, d);
     }
 }
