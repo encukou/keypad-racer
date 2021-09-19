@@ -21,8 +21,10 @@ class Line:
         vertices = numpy.array(
             (
                 (-.25, -.25),
+                (-.25, -.25),
                 (.25, .25),
                 (.25, -.25),
+                (.4, -.8),
                 (.4, -.8),
             ),
             dtype='f4',
@@ -42,4 +44,4 @@ class Line:
         prog['resolution'] = 800, 600
 
     def draw(self):
-        self.vao.render(moderngl.LINE_STRIP)
+        self.vao.render(moderngl.LINE_STRIP_ADJACENCY)
