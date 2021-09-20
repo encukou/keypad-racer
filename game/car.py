@@ -1,12 +1,25 @@
 import numpy
 import moderngl
 import struct
+import math
 
 from . import resources
 
 BASIC_FORMAT = '2f1f'
 FULL_FORMAT = BASIC_FORMAT + '3f'
 STRIDE = struct.calcsize(FULL_FORMAT)
+
+ACTION_DIRECTIONS = {
+    0: (-1, +1),
+    1: ( 0, +1),
+    2: (+1, +1),
+    3: (-1,  0),
+    4: ( 0,  0),
+    5: (+1, 0 ),
+    6: (-1, -1),
+    7: ( 0, -1),
+    8: (+1, -1),
+}
 
 class CarGroup:
     def __init__(self, ctx, max_cars):
@@ -65,6 +78,7 @@ class Car:
         self._color = color
         self._orientation = 0
         self._pos = pos
+        self.velocity = 0, 1
         self.dirty = 2      # bitfield: 1=position/orientation; 2=color
 
     def update_group(self):
@@ -104,3 +118,14 @@ class Car:
     def pos(self, new):
         self._pos = new
         self.dirty |= 1
+
+    def kbd(self, action, is_pressed):
+        if is_pressed and (xy := ACTION_DIRECTIONS.get(action)):
+            dx, dy = xy
+            x, y = self.pos
+            vx, vy = self.velocity
+            vx += dx
+            vy += dy
+            self.velocity = vx, vy
+            self.pos = x + vx, y + vy
+            self.orientation = math.tau/4 - math.atan2(vy, vx)

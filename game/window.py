@@ -82,6 +82,16 @@ car4 = Car(car_group, (0, 1, 0), (3, 4))
 car5 = Car(car_group, (1, 0, 1), (2, 3))
 car3.orientation = 1
 
+from .keyboard import Keyboard
+
+kbd = Keyboard()
+kbd.attach_to_window(window)
+
+kbd.set_car(0, car1)
+kbd.set_car(1, car2)
+kbd.set_car(2, car3)
+kbd.set_car(3, car4)
+
 @window.event
 def on_draw():
     fbo = ctx.screen

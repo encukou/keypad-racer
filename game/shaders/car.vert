@@ -21,7 +21,7 @@ void main() {
         1.0/zoom*resolution.y,
         1.0/zoom*resolution.x
     );
-    vec2 uvw = vec2(uv.x * 0.3, uv.y * 0.45) * rot + pos;
+    vec2 uvw = vec2(uv.x * (0.26 - uv.y * 0.04), uv.y * 0.45) * rot + pos;
     gl_Position = vec4(uvw * zoomat + pan, 0.0, 1.0);
     v_color = color;
 }
