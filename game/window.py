@@ -11,19 +11,16 @@ if platform.system() == "Darwin":
     pyglet.options["shadow_window"] = False
 
 required_extensions = [
-    # for https://github.com/moderngl/moderngl/issues/346 :
-    'GL_ARB_multi_draw_indirect',
 ]
 
 def check_gl_extensions():
     missing = []
     for ext in required_extensions:
         if not pyglet.gl.gl_info.have_extension(ext):
-            missing.add(ext)
+            missing.append(ext)
     if missing:
         print(
-            'WARNING: This game requires OpenGL version 4.3 '
-            + '(or the multi_draw_indirect extension).'
+            'WARNING: This game requires OpenGL version 3.3 '
             + 'It will not work correctly on your machine.'
         )
 
