@@ -6,6 +6,13 @@ uniform vec2 resolution;
 uniform float antialias;
 
 vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
+    float wrot = 0.005;
+    float swr = sin(wrot);
+    float cwr = cos(wrot);
+    mat2 rotw = mat2(
+        cwr, swr,
+        -swr, cwr
+    );
     float so = sin(orientation);
     float co = cos(orientation);
     mat2 rot = mat2(
@@ -16,5 +23,5 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
         1.0/zoom*resolution.y/resolution.x,
         1.0/zoom
     );
-    return (uv * rot + pos - pan) * zoomat + (uv * antialias * rot / resolution);
+    return rotw * ((uv * rot + pos - pan) * zoomat + (uv * antialias * rot / resolution));
 }

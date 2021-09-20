@@ -113,7 +113,7 @@ def on_mouse_scroll(x, y, scroll_x, scroll_y):
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, mod):
-    car_group.adjust_pan(-dx/car_group.zoom, -dy/car_group.zoom)
+    car_group.adjust_pan(-dx*car_group.zoom/window.width*4, -dy*car_group.zoom/window.width*4)
 
 def run():
     pyglet.app.run()

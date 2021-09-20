@@ -1,5 +1,4 @@
 #version 330
-#include palette.glsl.info
 
 uniform float antialias;
 uniform vec2 resolution;
@@ -27,7 +26,6 @@ float sdTrapezoid( in vec2 p, in float r1, float r2, float he )
 void main() {
     gl_FragColor = v_color;
     float sdf = sdTrapezoid(v_uv, 0.60, 0.43, 0.9);
-    gl_FragColor = color(sdf);
     if (sdf < 0) {
         gl_FragColor = vec4(v_color.xyz, 1.0);
         return;
