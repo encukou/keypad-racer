@@ -1,15 +1,5 @@
 #version 330
 
-float SDF_circle(vec2 p, float radius)
-{
-    return length(p) - radius;
-}
-
-float distance(vec2 P, vec2 center, float radius)
-{
-    return length(P-center) - radius;
-}
-
 uniform float antialias;
 varying vec4 g_color;
 varying float g_thickness;

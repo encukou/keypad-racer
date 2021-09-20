@@ -72,15 +72,26 @@ from .line import Line
 
 line = Line(ctx, 0, 0, 1, 1, thickness=5)
 
+from .car import CarGroup, Car
+
+car_group = CarGroup(ctx, 5)
+car1 = Car(car_group, (0, 1, 1), (1, 0))
+car2 = Car(car_group, (1, 1, 0), (0, 0))
+car3 = Car(car_group, (1, 0, 0), (2, 0))
+car4 = Car(car_group, (0, 1, 0), (3, 4))
+car5 = Car(car_group, (1, 0, 1), (2, 3))
+car3.orientation = 1
+
 @window.event
 def on_draw():
     fbo = ctx.screen
     fbo.use()
     ctx.clear(0.0, 0.0, 0.3, 0.0)
     line.draw()
+    car_group.draw()
 
 def tick(dt):
-    pass
+    car3.orientation += dt
 pyglet.clock.schedule_interval(tick, 1/30)
 
 @window.event
