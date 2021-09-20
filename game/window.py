@@ -100,7 +100,7 @@ kbd.set_car(3, car4)
 def on_draw():
     fbo = ctx.screen
     fbo.use()
-    ctx.clear(0.0, 0.0, 0.3, 0.0)
+    ctx.clear(0.0, 0.0, 0.0, 0.0)
     car_group.draw()
 
 def tick(dt):
@@ -113,7 +113,7 @@ def on_mouse_scroll(x, y, scroll_x, scroll_y):
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, mod):
-    car_group.adjust_pan(-dx/car_group.zoom*window.width, -dy/car_group.zoom*window.height)
+    car_group.adjust_pan(-dx/car_group.zoom, -dy/car_group.zoom)
 
 def run():
     pyglet.app.run()

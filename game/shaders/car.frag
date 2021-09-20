@@ -32,7 +32,7 @@ void main() {
         gl_FragColor = vec4(v_color.xyz, 1.0);
         return;
     }
-    float aa = antialias / resolution.x / resolution.y * zoom;
+    float aa = antialias / 200 * zoom;
     if (sdf < aa) {
         gl_FragColor = vec4(v_color.xyz, 1.0 - sdf/aa);
         return;

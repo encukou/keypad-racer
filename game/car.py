@@ -29,7 +29,7 @@ class CarGroup:
         self.ctx = ctx
         self.max_cars = max_cars
         self.cars = []
-        self.zoom = 10000
+        self.zoom = 10
         self.pan = 0, 0
 
         self.car_prog = ctx.program(
@@ -53,7 +53,7 @@ class CarGroup:
             ],
         )
         self.car_prog['resolution'] = 800, 600
-        self.car_prog['antialias'] = 4
+        self.car_prog['antialias'] = 2
 
         self.line_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car_line.vert'),
@@ -81,7 +81,7 @@ class CarGroup:
             skip_errors=True,
         )
         self.line_prog['resolution'] = 800, 600
-        self.line_prog['antialias'] = 2
+        self.line_prog['antialias'] = 8
         self.adjust_zoom(0)
         self.adjust_pan(0, 0)
 
@@ -111,11 +111,10 @@ class CarGroup:
 
     def adjust_zoom(self, dz):
         self.zoom *= 1.1**dz
-        self.zoom = int(self.zoom)
-        if self.zoom > 90000:
-            self.zoom = 90000
-        if self.zoom < 3000:
-            self.zoom = 3000
+        if self.zoom > 100:
+            self.zoom = 100
+        if self.zoom < 1:
+            self.zoom = 1
         print('zoom', self.zoom)
         self.car_prog['zoom'] = self.zoom
         self.line_prog['zoom'] = self.zoom

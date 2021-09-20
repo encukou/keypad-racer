@@ -9,7 +9,7 @@ varying float v_t;
 
 void main() {
     float alpha;
-    float thickness = 4 / zoom * (resolution.x+resolution.y)/2 / 0.015;
+    float thickness = (resolution.x+resolution.y) / 2 / zoom * 0.8;
     if (thickness < 0.1) {
         alpha = thickness;
         v_thickness = 1.0;

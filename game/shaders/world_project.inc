@@ -13,8 +13,8 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
         -so, co
     );
     vec2 zoomat = vec2(
-        1.0/zoom*resolution.y,
-        1.0/zoom*resolution.x
+        1.0/zoom*resolution.y/resolution.x,
+        1.0/zoom
     );
     return (uv * rot + pos - pan) * zoomat + (uv * antialias * rot / resolution);
 }
