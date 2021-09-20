@@ -24,12 +24,12 @@ void main() {
     v_screenuv = uv;
     if (resolution.x > resolution.y) {
         v_screenuv_norm = vec2(
-            v_screenuv.x * resolution.y / resolution.x,
+            v_screenuv.x * resolution.x / resolution.y,
             v_screenuv.y);
     } else {
         v_screenuv_norm = vec2(
             v_screenuv.x,
-            v_screenuv.y * resolution.x / resolution.y);
+            v_screenuv.y * resolution.y / resolution.x);
     }
     // minimum (z=res.y/7): line_width = 8 * zoom / resolution.y;
     // max (z=1): line_width = 30 * zoom / resolution.y;

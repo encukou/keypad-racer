@@ -1,6 +1,7 @@
 import platform
 import os
 import sys
+import random
 
 import pyglet
 import moderngl
@@ -31,6 +32,7 @@ class Window(pyglet.window.Window):
             'caption': 'pyweek game',
             'width': 800,
             'height': 600,
+            'resizable': True,
         }
         config = pyglet.gl.Config(
             major_version=3,
@@ -88,8 +90,18 @@ for i in range(2):
 
 from .keyboard import Keyboard
 
+def global_key_event(car, action, is_pressed):
+    if action == 'fullscreen' and is_pressed:
+        if window.fullscreen:
+            window.set_fullscreen(False)
+        else:
+            disp = pyglet.canvas.get_display()
+            screen = random.choice(disp.get_screens())
+            window.set_fullscreen(True, screen=screen)
+
 kbd = Keyboard()
 kbd.attach_to_window(window)
+kbd.attach_handler(global_key_event)
 
 kbd.set_car(0, car1)
 kbd.set_car(1, car2)
@@ -114,6 +126,13 @@ def on_mouse_scroll(x, y, scroll_x, scroll_y):
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, mod):
     car_group.adjust_pan(-dx*car_group.zoom/window.width*4, -dy*car_group.zoom/window.width*4)
+
+@window.event
+def on_resize(w, h):
+    print(window.get_framebuffer_size())
+    ctx.scissor = (0, 0, *window.get_framebuffer_size())
+    ctx.viewport = (0, 0, *window.get_framebuffer_size())
+    car_group.set_resolution(w, h)
 
 def run():
     pyglet.app.run()

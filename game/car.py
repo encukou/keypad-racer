@@ -150,6 +150,7 @@ class CarGroup:
         self.car_prog['resolution'] = w, h
         self.line_prog['resolution'] = w, h
         self.grid_prog['resolution'] = w, h
+        self.adjust_zoom(0)
 
 class Car:
     def __init__(self, group, color, pos):

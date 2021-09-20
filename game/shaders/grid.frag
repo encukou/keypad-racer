@@ -25,9 +25,9 @@ void main() {
         vec3(0.12, 0.11, 0.1),
         v_screenuv.y / 2.0 + 0.5);
     vec3 grid_color = mix(
-        vec3(0.2, 0.26, 0.3),
-        vec3(0.2, 0.26, 0.3) * 0.6,
-        length(v_screenuv_norm));
+        vec3(0.27, 0.28, 0.32),
+        vec3(0.13, 0.18, 0.21),
+        clamp(0.0, 1.0, length(v_screenuv_norm)));
     gl_FragColor = vec4(mix(
         base_color,
         grid_color,

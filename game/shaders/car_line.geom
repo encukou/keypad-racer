@@ -50,7 +50,9 @@ void main()
     vec2 direction = normalize(p2-p1);
     vec2 dir_side = vec2(-direction.y, direction.x);
 
-    float half_quad_thickness = v_thickness[1] / 2.0 + antialias/resolution.x;
+    float hqt_adjust = antialias/resolution.y / 2.0;
+
+    float half_quad_thickness = v_thickness[1] / 2.0 + hqt_adjust;
     vec2 offset = get_offset(p0, p1, p2, 1, half_quad_thickness);
 
     set_g_pervertex(1);
@@ -61,7 +63,7 @@ void main()
     gl_Position = vec4(p1 - offset, 0.0, 1.0);
     EmitVertex();
 
-    half_quad_thickness = v_thickness[2] / 2.0 + antialias/resolution.x;
+    half_quad_thickness = v_thickness[2] / 2.0 + hqt_adjust;
     offset = dir_side * half_quad_thickness / resolution;
     offset = -get_offset(p3, p2, p1, -1, half_quad_thickness);
     set_g_pervertex(2);

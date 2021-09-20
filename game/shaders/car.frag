@@ -1,8 +1,8 @@
 #version 330
 
 uniform float antialias;
-uniform vec2 resolution;
 uniform float zoom;
+uniform vec2 resolution;
 
 varying vec4 v_color;
 varying vec2 v_uv;
@@ -30,7 +30,7 @@ void main() {
         gl_FragColor = vec4(v_color.xyz, 1.0);
         return;
     }
-    float aa = antialias / 200 * zoom;
+    float aa = antialias * zoom / resolution.y * 2;
     if (sdf < aa) {
         gl_FragColor = vec4(v_color.xyz, 1.0 - sdf/aa);
         return;

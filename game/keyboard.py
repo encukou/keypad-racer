@@ -71,10 +71,14 @@ class Keyboard:
     def __init__(self):
         self.load_mapping(DEFAULT_MAP)
         self.cars = {}
+        self.global_handlers = []
 
     def attach_to_window(self, window):
         window.event(self.on_key_press)
         window.event(self.on_key_release)
+
+    def attach_handler(self, handler):
+        self.global_handlers.append(handler)
 
     def load_mapping(self, mapping):
         self.action_map = {}
@@ -115,8 +119,10 @@ class Keyboard:
 
     def trigger_evt(self, evt, is_pressed):
         car_i, act = evt
-        if car := self.cars[car_i]:
+        if car := self.cars.get(car_i):
             car.kbd(act, is_pressed)
+        for handler in self.global_handlers:
+            handler(car_i, act, is_pressed)
 
     def set_car(self, index, car):
         self.cars[index] = car

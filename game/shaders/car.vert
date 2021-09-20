@@ -12,9 +12,9 @@ varying vec2 v_uv;
 
 void main() {
     gl_Position = vec4(
-        transform_car(pos, uv/2+5*antialias/resolution, orientation),
+        transform_car(pos, uv, orientation),
         0.0, 1.0
     );
     v_color = color;
-    v_uv = uv + uv*antialias/resolution;
+    v_uv = uv * 2;
 }
