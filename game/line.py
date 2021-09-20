@@ -34,8 +34,8 @@ class Line:
             dtype='u2',
         )
 
-        self.vbo = ctx.buffer(vertices.tobytes())
-        ibo = ctx.buffer(indices.tobytes())
+        self.vbo = ctx.buffer(vertices)
+        ibo = ctx.buffer(indices)
         thick_vbo = ctx.buffer(bytes([60]))
         self.vao = ctx.vertex_array(
             prog,
@@ -52,7 +52,7 @@ class Line:
     def set_xy(self, x, y):
         print(x, y)
         arr = numpy.array([(x-400)/400, (y-300)/300], dtype='f4')
-        self.vbo.write(arr.tobytes(), offset=4*6*2)
+        self.vbo.write(arr, offset=4*6*2)
 
     def draw(self):
         #t = time.time()
