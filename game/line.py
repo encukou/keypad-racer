@@ -23,16 +23,19 @@ class Line:
         vertices = numpy.array(
             (
                 (-.25, -.25, 0, 0, 0, 1),
-                (-.25, -.25, 0, 0, 0, 1),
                 (.0, .0, 1, 1, 1, 1),
                 (.25, -.25, 1, 0, 0, 1),
-                (.4, -.8, 1, 1, 1, 1),
                 (.4, -.8, 1, 1, 1, 1),
             ),
             dtype='f4',
         )
+        indices = numpy.array(
+            (0, 0,1, 2, 3, 3),
+            dtype='u2',
+        )
 
         self.vbo = ctx.buffer(vertices.tobytes())
+        ibo = ctx.buffer(indices.tobytes())
         thick_vbo = ctx.buffer(bytes([60]))
         self.vao = ctx.vertex_array(
             prog,
@@ -40,6 +43,8 @@ class Line:
                 (self.vbo, '2f4 4f4', 'point', 'color'),
                 (thick_vbo, '1i1 /r', 'thickness'),
             ],
+            index_buffer=ibo,
+            index_element_size=2,
         )
         prog['antialias'] = 5.0
         prog['resolution'] = 800, 600

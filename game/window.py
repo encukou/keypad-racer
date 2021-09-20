@@ -11,6 +11,23 @@ from . import resources
 if platform.system() == "Darwin":
     pyglet.options["shadow_window"] = False
 
+required_extensions = [
+    # for https://github.com/moderngl/moderngl/issues/346 :
+    'GL_ARB_multi_draw_indirect',
+]
+
+def check_gl_extensions():
+    missing = []
+    for ext in required_extensions:
+        if not pyglet.gl.gl_info.have_extension(ext):
+            missing.add(ext)
+    if missing:
+        print(
+            'WARNING: This game requires OpenGL version 4.3 '
+            + '(or the multi_draw_indirect extension).'
+            + 'It will not work correctly on your machine.'
+        )
+
 class Window(pyglet.window.Window):
     def __init__(self):
         print(pyglet.gl.glext_arb)
@@ -21,11 +38,13 @@ class Window(pyglet.window.Window):
         }
         config = pyglet.gl.Config(
             major_version=3,
+            minor_version=3,
             forward_compatible=True,
             #depth_size=24,
             double_buffer=True,
         )
         super().__init__(config=config, **kwargs)
+        check_gl_extensions()
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)
 
