@@ -69,13 +69,19 @@ from .line import Line
 line = Line(ctx, 0, 0, 1, 1, thickness=5)
 
 from .car import CarGroup, Car
+from .palette import Palette
+pal = Palette()
 
-car_group = CarGroup(ctx, 5)
-car1 = Car(car_group, (0, 1, 1), (1, 0))
-car2 = Car(car_group, (1, 1, 0), (0, 0))
-car3 = Car(car_group, (1, 0, 0), (2, 0))
-car4 = Car(car_group, (0, 1, 0), (3, 4))
-car5 = Car(car_group, (1, 0, 1), (2, 3))
+car_group = CarGroup(ctx, 9)
+car1 = Car(car_group, pal.player_color(0), (1, 0))
+car2 = Car(car_group, pal.player_color(1), (0, 0))
+car3 = Car(car_group, pal.player_color(2), (2, 0))
+car4 = Car(car_group, pal.player_color(3), (3, 4))
+car5 = Car(car_group, pal.player_color(4), (2, 3))
+car6 = Car(car_group, pal.player_color(5), (-2, -2))
+car7 = Car(car_group, pal.player_color(6), (-3, -2))
+car8 = Car(car_group, pal.player_color(7), (-4, -2))
+car9 = Car(car_group, pal.player_color(8), (-5, -2))
 for i in range(2):
     car3.kbd(0, True)
 for i in range(3):

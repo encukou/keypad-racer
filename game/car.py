@@ -8,7 +8,7 @@ BASIC_FORMAT = '=2f1f'
 FULL_FORMAT = BASIC_FORMAT + '3f'
 STRIDE = struct.calcsize(FULL_FORMAT)
 
-HISTORY_SIZE = 5
+HISTORY_SIZE = 6
 LINE_FORMAT = '=2h'
 LINE_STRIDE = struct.calcsize(LINE_FORMAT)
 
@@ -54,23 +54,35 @@ class CarGroup:
         prog['pan'] = 0, 0
         prog['resolution'] = 800, 600
 
-        prog = ctx.program(
+        self.line_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car_line.vert'),
-            fragment_shader=resources.get_shader('shaders/line_segment.frag'),
-            geometry_shader=resources.get_shader('shaders/line_segment.geom'),
+            fragment_shader=resources.get_shader('shaders/car_line.frag'),
+            geometry_shader=resources.get_shader('shaders/car_line.geom'),
         )
-        self.line_vbo = ctx.buffer(bytes(LINE_STRIDE * max_cars * (HISTORY_SIZE+2)))
+        self.line_vbo = ctx.buffer(
+            bytes(LINE_STRIDE * max_cars * (HISTORY_SIZE+2)),
+            dynamic=True,
+        )
+        line_t = ctx.buffer(
+            bytes([
+                0,
+                *(int(255*t/(HISTORY_SIZE-1)) for t in range(HISTORY_SIZE)),
+                255,
+            ]) * self.max_cars,
+        )
+        print(list(line_t.read()))
         self.line_vao = ctx.vertex_array(
-            prog,
+            self.line_prog,
             [
                 (self.line_vbo, '2i2', 'point'),
-                (self.line_vbo, '2x4 x4 3f4 /i', 'color'),
+                (line_t, 'f1', 't'),
             ],
+            skip_errors=True,
         )
-        prog['resolution'] = 800, 600
-        prog['antialias'] = 2
-        prog['zoom'] = 800*15
-        prog['pan'] = 0, 0
+        self.line_prog['resolution'] = 800, 600
+        self.line_prog['antialias'] = 2
+        self.line_prog['zoom'] = 800*15
+        self.line_prog['pan'] = 0, 0
 
 
     def draw(self):
@@ -79,6 +91,7 @@ class CarGroup:
                 car.update_group()
         if self.cars:
             for i, car in enumerate(self.cars):
+                self.line_prog['color'] = car.color
                 self.line_vao.render(
                     moderngl.LINE_STRIP_ADJACENCY,
                     first=i*(HISTORY_SIZE+2),

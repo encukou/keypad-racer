@@ -52,7 +52,6 @@ void main()
     float half_quad_thickness = v_thickness[1]/2.0 + antialias;
     vec2 offset = get_offset(p0, p1, p2, 1, half_quad_thickness);
 
-    //offset = dir_side * half_quad_thickness / resolution;
     set_g_pervertex(1);
     g_distance = half_quad_thickness;
     gl_Position = vec4(p1 + offset, 0.0, 1.0);
