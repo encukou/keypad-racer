@@ -33,9 +33,9 @@ DEFAULT_MAP = {
         (
             pyglet.window.key.O,
             pyglet.window.key.P,
-            pyglet.window.key.BRACELEFT,
+            pyglet.window.key.BRACKETLEFT,
             pyglet.window.key.L,
-            pyglet.window.key.COLON,
+            pyglet.window.key.SEMICOLON,
             pyglet.window.key.APOSTROPHE,
             pyglet.window.key.PERIOD,
             pyglet.window.key.SLASH,

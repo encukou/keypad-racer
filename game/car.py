@@ -29,8 +29,10 @@ class CarGroup:
         self.ctx = ctx
         self.max_cars = max_cars
         self.cars = []
+        self.zoom = 10000
+        self.pan = 0, 0
 
-        prog = ctx.program(
+        self.car_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car.vert'),
             fragment_shader=resources.get_shader('shaders/car.frag'),
         )
@@ -44,15 +46,13 @@ class CarGroup:
         self.uv_vbo = ctx.buffer(vertices)
         self.cars_vbo = ctx.buffer(bytes(STRIDE * max_cars), dynamic=True)
         self.vao = ctx.vertex_array(
-            prog,
+            self.car_prog,
             [
                 (self.uv_vbo, '2i1', 'uv'),
                 (self.cars_vbo, '2f4 f4 3f4 /i', 'pos', 'orientation', 'color'),
             ],
         )
-        prog['zoom'] = 800*15
-        prog['pan'] = 0, 0
-        prog['resolution'] = 800, 600
+        self.car_prog['resolution'] = 800, 600
 
         self.line_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car_line.vert'),
@@ -81,9 +81,8 @@ class CarGroup:
         )
         self.line_prog['resolution'] = 800, 600
         self.line_prog['antialias'] = 2
-        self.line_prog['zoom'] = 800*15
-        self.line_prog['pan'] = 0, 0
-
+        self.adjust_zoom(0)
+        self.adjust_pan(0, 0)
 
     def draw(self):
         for car in self.cars:
@@ -108,6 +107,30 @@ class CarGroup:
             raise ValueError('Too many cars in group')
         self.cars.append(car)
         return result
+
+    def adjust_zoom(self, dz):
+        self.zoom *= 1.1**dz
+        self.zoom = int(self.zoom)
+        if self.zoom > 90000:
+            self.zoom = 90000
+        if self.zoom < 3000:
+            self.zoom = 3000
+        print('zoom', self.zoom)
+        self.car_prog['zoom'] = self.zoom
+        self.line_prog['zoom'] = self.zoom
+
+    def adjust_pan(self, dx, dy):
+        x, y = self.pan
+        x += dx
+        y += dy
+        self.pan = x, y
+        print('pan', self.pan)
+        self.car_prog['pan'] = self.pan
+        self.line_prog['pan'] = self.pan
+
+    def set_resolution(self, w, h):
+        self.car_prog['resolution'] = w, h
+        self.line_prog['resolution'] = w, h
 
 class Car:
     def __init__(self, group, color, pos):
@@ -164,15 +187,14 @@ class Car:
         vy += dy
         self.velocity = vx, vy
         new = x + vx, y + vy
-        buf = struct.pack(LINE_FORMAT, *new)
-        self.history = [
-            self.history[2],
-            *self.history[2:-1],
-            buf,
-            buf,
-        ]
-        print(list(self.history))
         if self._pos != new:
+            buf = struct.pack(LINE_FORMAT, *new)
+            self.history = [
+                self.history[2],
+                *self.history[2:-1],
+                buf,
+                buf,
+            ]
             self._orientation = math.tau/4 - math.atan2(vy, vx)
             self._pos = new
         self.dirty |= 1

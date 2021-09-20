@@ -64,15 +64,12 @@ print("code:", ctx.version_code)
 ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
 ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
-from .line import Line
-
-line = Line(ctx, 0, 0, 1, 1, thickness=5)
-
 from .car import CarGroup, Car
 from .palette import Palette
 pal = Palette()
 
 car_group = CarGroup(ctx, 9)
+car_group.set_resolution(window.width, window.height)
 car1 = Car(car_group, pal.player_color(0), (1, 0))
 car2 = Car(car_group, pal.player_color(1), (0, 0))
 car3 = Car(car_group, pal.player_color(2), (2, 0))
@@ -104,7 +101,6 @@ def on_draw():
     fbo = ctx.screen
     fbo.use()
     ctx.clear(0.0, 0.0, 0.3, 0.0)
-    line.draw()
     car_group.draw()
 
 def tick(dt):
@@ -112,12 +108,12 @@ def tick(dt):
 pyglet.clock.schedule_interval(tick, 1/30)
 
 @window.event
-def on_mouse_press(x, y, button, mod):
-    line.set_xy(x, y)
+def on_mouse_scroll(x, y, scroll_x, scroll_y):
+    car_group.adjust_zoom(scroll_y)
 
 @window.event
-def on_mouse_motion(x, y, dx, dy):
-    line.set_xy(x, y)
+def on_mouse_drag(x, y, dx, dy, buttons, mod):
+    car_group.adjust_pan(-dx/car_group.zoom*window.width, -dy/car_group.zoom*window.height)
 
 def run():
     pyglet.app.run()

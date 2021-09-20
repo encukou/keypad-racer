@@ -15,6 +15,5 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
         1.0/zoom*resolution.y,
         1.0/zoom*resolution.x
     );
-    vec2 uvw = vec2(uv.x * (0.26 - uv.y * 0.04), uv.y * 0.45) * rot + pos;
-    return uvw * zoomat + pan;
+    return (uv * rot + pos - pan) * zoomat;
 }
