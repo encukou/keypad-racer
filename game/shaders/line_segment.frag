@@ -19,7 +19,7 @@ varying vec2 v_p0, v_p1, v_p;
 
 void main() {
     float d = abs(g_distance);
-    float thickness = g_thickness / 4.0;
+    float thickness = g_thickness / 2.0;
     if (d < thickness) {
         gl_FragColor = g_color;
         return;
@@ -30,5 +30,4 @@ void main() {
         return;
     }
     gl_FragColor = vec4(g_color.rgb, 0.0);
-    return;
 }

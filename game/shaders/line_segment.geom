@@ -23,13 +23,13 @@ vec2 get_offset(vec2 p0, vec2 p1, vec2 p2, float z, float half_quad_thickness) {
 
     vec2 offset = dir_side * half_quad_thickness / resolution;
     if (p0 != p1) {
-        vec2 t0 = normalize(p1 - p0);
-        vec2 t1 = normalize(p2 - p1);
+        vec2 t0 = normalize((p1 - p0)/resolution.yx);
+        vec2 t1 = normalize((p2 - p1)/resolution.yx);
         vec2 n0 = vec2(-t0.y, t0.x);
         vec2 n1 = vec2(-t1.y, t1.x);
         vec2 miter_direction = normalize(n0 + n1);
         float dist = 1 / dot(miter_direction, n1);
-        if (dist > 3) {
+        if (dist > 6) {
             // Switch to a miter joint
             miter_direction = normalize(n0 - n1);
             dist = 1 / dot(miter_direction, n1);

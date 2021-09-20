@@ -41,14 +41,13 @@ class Line:
                 (thick_vbo, '1i1 /r', 'thickness'),
             ],
         )
-        print(sorted(prog))
-        prog['antialias'] = 2.0
-        prog['resolution'] = 600, 600
+        prog['antialias'] = 5.0
+        prog['resolution'] = 800, 600
 
     def set_xy(self, x, y):
         print(x, y)
-        arr = numpy.array([(x-300)/300, (y-300)/300], dtype='f4')
-        self.vbo.write(arr.tobytes(), offset=4*6*3)
+        arr = numpy.array([(x-400)/400, (y-300)/300], dtype='f4')
+        self.vbo.write(arr.tobytes(), offset=4*6*2)
 
     def draw(self):
         #t = time.time()

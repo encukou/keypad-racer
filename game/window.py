@@ -13,13 +13,19 @@ if platform.system() == "Darwin":
 
 class Window(pyglet.window.Window):
     def __init__(self):
+        print(pyglet.gl.glext_arb)
+        kwargs = {
+            'caption': 'pyweek game',
+            'width': 800,
+            'height': 600,
+        }
         config = pyglet.gl.Config(
             major_version=3,
             forward_compatible=True,
             #depth_size=24,
             double_buffer=True,
         )
-        super().__init__(config=config, caption='pyweek game', width=600, height=600)
+        super().__init__(config=config, **kwargs)
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)
 
