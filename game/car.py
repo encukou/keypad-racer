@@ -53,6 +53,7 @@ class CarGroup:
             ],
         )
         self.car_prog['resolution'] = 800, 600
+        self.car_prog['antialias'] = 4
 
         self.line_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car_line.vert'),

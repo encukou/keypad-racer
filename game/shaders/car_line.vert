@@ -1,6 +1,5 @@
 #version 330
 #include world_project.inc
-uniform float antialias;
 attribute float t;
 
 attribute vec2 point;

@@ -3,6 +3,7 @@
 uniform vec2 pan;
 uniform float zoom;
 uniform vec2 resolution;
+uniform float antialias;
 
 vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
     float so = sin(orientation);
@@ -15,5 +16,5 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
         1.0/zoom*resolution.y,
         1.0/zoom*resolution.x
     );
-    return (uv * rot + pos - pan) * zoomat;
+    return (uv * rot + pos - pan) * zoomat + (uv * antialias * rot / resolution);
 }
