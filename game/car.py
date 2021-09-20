@@ -1,13 +1,16 @@
-import numpy
 import moderngl
 import struct
 import math
 
 from . import resources
 
-BASIC_FORMAT = '2f1f'
+BASIC_FORMAT = '=2f1f'
 FULL_FORMAT = BASIC_FORMAT + '3f'
 STRIDE = struct.calcsize(FULL_FORMAT)
+
+HISTORY = 1
+LINE_FORMAT = '=2f'
+LINE_STRIDE = struct.calcsize(LINE_FORMAT)
 
 ACTION_DIRECTIONS = {
     0: (-1, +1),
@@ -32,21 +35,18 @@ class CarGroup:
             fragment_shader=resources.get_shader('shaders/car.frag'),
         )
 
-        vertices = numpy.array(
-            (
-                (1, -1),
-                (-1, -1),
-                (1, 1),
-                (-1, 1),
-            ),
-            dtype='f4',
-        )
+        vertices = bytes((
+            1, 255,
+            255, 255,
+            1, 1,
+            255, 1,
+        ))
         self.uv_vbo = ctx.buffer(vertices)
         self.cars_vbo = ctx.buffer(bytes(STRIDE * max_cars), dynamic=True)
         self.vao = ctx.vertex_array(
             prog,
             [
-                (self.uv_vbo, '2f4', 'uv'),
+                (self.uv_vbo, '2i1', 'uv'),
                 (self.cars_vbo, '2f4 f4 3f4 /i', 'pos', 'orientation', 'color'),
             ],
         )

@@ -4,7 +4,6 @@ import sys
 
 import pyglet
 import moderngl
-import numpy
 
 from . import resources
 
@@ -80,7 +79,12 @@ car2 = Car(car_group, (1, 1, 0), (0, 0))
 car3 = Car(car_group, (1, 0, 0), (2, 0))
 car4 = Car(car_group, (0, 1, 0), (3, 4))
 car5 = Car(car_group, (1, 0, 1), (2, 3))
-car3.orientation = 1
+for i in range(2):
+    car3.kbd(0, True)
+for i in range(3):
+    car3.kbd(8, True)
+for i in range(2):
+    car3.kbd(7, True)
 
 from .keyboard import Keyboard
 
@@ -101,7 +105,7 @@ def on_draw():
     car_group.draw()
 
 def tick(dt):
-    car3.orientation += dt
+    car2.orientation += dt
 pyglet.clock.schedule_interval(tick, 1/30)
 
 @window.event

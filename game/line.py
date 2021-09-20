@@ -1,4 +1,4 @@
-import numpy
+import struct
 import moderngl
 import time
 import math
@@ -20,19 +20,15 @@ class Line:
             geometry_shader=resources.get_shader('shaders/line_segment.geom'),
         )
 
-        vertices = numpy.array(
-            (
+        vertices = b''.join(
+            struct.pack('=6f', *r) for r in (
                 (-.25, -.25, 0, 0, 0, 1),
                 (.0, .0, 1, 1, 1, 1),
                 (.25, -.25, 1, 0, 0, 1),
                 (.4, -.8, 1, 1, 1, 1),
-            ),
-            dtype='f4',
+            )
         )
-        indices = numpy.array(
-            (0, 0,1, 2, 3, 3),
-            dtype='u2',
-        )
+        indices = struct.pack('=6h', 0, 0,1, 2, 3, 3)
 
         self.vbo = ctx.buffer(vertices)
         ibo = ctx.buffer(indices)
@@ -51,7 +47,7 @@ class Line:
 
     def set_xy(self, x, y):
         print(x, y)
-        arr = numpy.array([(x-400)/400, (y-300)/300], dtype='f4')
+        arr = struct.pack('=2f', (x-400)/400, (y-300)/300)
         self.vbo.write(arr, offset=4*6*2)
 
     def draw(self):
