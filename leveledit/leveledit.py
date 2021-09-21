@@ -187,7 +187,7 @@ class EditorState:
         self.pan(x-cx, y-cy)
 
     def _zoom_to_detail(self, arg=None):
-        segment = self.segments[17]
+        segment = self.segments[10]
         self.view_center = segment.start.vec
         self.zoom = 40
 
@@ -211,10 +211,14 @@ class EditorState:
         if path is None:
             raise ValueError('Did not find a path with id=circuit')
         points = parse_svg_path(path)
-        self.bb = tuple(
-            fun(points, key=operator.itemgetter(i))[i]
-            for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
-        )
+        def get_bb():
+            return tuple(
+                fun(points, key=operator.itemgetter(i))[i]
+                for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
+            )
+        min_x, min_y, max_x, max_y = get_bb()
+        points = [(x - min_x, y - min_y) for x, y in points]
+        self.bb = get_bb()
         seg = Segment(self, *points[:4])
         self.segments = [seg]
         for points in zip(points[4::3], points[5::3], points[6::3]):
@@ -306,6 +310,7 @@ class EditorState:
         self.changing = False
         points = []
         for i, seg in enumerate(self.segments):
+            #point = {'pos': tuple(seg.start.vec - self.bb[:2]), 'radius': seg.start.size}
             point = {'pos': seg.start, 'radius': seg.start.size}
             if i == 0:
                 point['first'] = True
@@ -356,7 +361,9 @@ class EditorState:
         x1, y1 = self.screen_to_model(0, 0)
         x2, y2 = self.screen_to_model(window.width, window.height)
         for u in range(-10, 11):
-            if -4 <= u <= 4:
+            if u == 0:
+                pyglet.gl.glColor4f(.6, 0, 0, 1)
+            elif -4 <= u <= 4:
                 pyglet.gl.glColor4f(.4, 0, 0, 1)
             else:
                 pyglet.gl.glColor4f(.2, 0, 0, 1)
@@ -420,27 +427,32 @@ class EditorState:
         for segment in self.segments:
             for border in segment.borders:
                 pyglet.gl.glColor4f(1, 1, 1, .5)
-                N = 20
+                if not border.subdivisions:
+                    N = 20
+                    pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
+                    for i in range(N+1):
+                        pyglet.gl.glVertex2f(*border.evaluate(i/N))
+                    pyglet.gl.glEnd()
                 pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
-                for i in range(N+1):
-                    pyglet.gl.glVertex2f(*border.evaluate(i/N))
+                for t, n, pt, crossings in border.subdivisions:
+                    pyglet.gl.glVertex2f(*pt)
                 pyglet.gl.glEnd()
-                pyglet.gl.glColor4f(0, 1, 0, .5)
+                pyglet.gl.glColor4f(1, 1, 1, .25)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINES)
                 for t, n, pt, crossings in border.subdivisions:
                     if 'x' in crossings:
-                        p = [1/3, 0]
+                        p = [1/5, 0]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
                     if 'y' in crossings:
-                        p = [0, 1/3]
+                        p = [0, 1/5]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
                     if 's' in crossings:
-                        p = [1/3, 1/3]
+                        p = [1/6, 1/6]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
-                        p = [1/3, -1/3]
+                        p = [1/6, -1/6]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
                 pyglet.gl.glEnd()
@@ -502,6 +514,16 @@ class Segment:
             ),
         ]
 
+def _gen_halvings(a, b):
+    if abs(a - b) < 0.1:
+        return
+    mid = (a + b) / 2
+    yield mid
+    for m, n in zip(_gen_halvings(a, mid), _gen_halvings(mid, b)):
+        yield m
+        yield n
+HALVINGS = tuple(_gen_halvings(0, 1))
+
 class Bezier:
     """Cubic de Casteljau/Bézier curve"""
     def __init__(self, p0, p1, p2, p3):
@@ -533,6 +555,52 @@ class Bezier:
                 crossings.add('x')
             self.subdivisions.append((t, next(nums), numpy.array([x, y]), crossings))
         print(len(self.subdivisions), self.subdivisions)
+        def do_subdiv():
+            self.subdivisions.sort()
+            for (t0, n0, p0, c0), (t1, n1, p1, c1) in zip(self.subdivisions, self.subdivisions[1:]):
+                for axis_name, crossing_name, axis in ('x', 'y', 0), ('y', 'x', 1):
+                    a0 = p0[axis]
+                    a1 = p1[axis]
+                    if math.floor(a0) == math.floor(a1):
+                        continue
+                    if math.floor(a0) == a0 and abs(a0-a1) <= 1:
+                        continue
+                    if math.floor(a1) == a1 and abs(a0-a1) <= 1:
+                        continue
+                    a0 = self.evaluate(t0)[axis]
+                    a1 = self.evaluate(t1)[axis]
+                    ra0 = math.floor(a0)
+                    if ra0 == math.floor(a1):
+                        continue
+                    print(
+                        f'finding {axis_name} between {a0:0.6f} and {a1:0.6f} '
+                        + f'that does not round down to {ra0}',
+                    )
+                    print(f'{t0:0.6f} -> {a0:0.6f} -> {math.floor(a0)}')
+                    print(f'{t1:0.6f} -> {a1:0.6f} -> {math.floor(a1)}')
+                    lower = t0
+                    higher = t1
+                    mid_t = (t0 + t1)/2
+                    while abs(higher - lower) > 0.000001:
+                        mid_a = self.evaluate(mid_t)[axis]
+                        same = (math.floor(mid_a) == ra0)
+                        print(f'midpoint {mid_t:0.6f} -> {mid_a:0.6f} {"rounds"if same else "does not round"} to {ra0}')
+                        if same:
+                            lower = mid_t
+                        else:
+                            higher = mid_t
+                        mid_t = (lower+higher)/2
+                    pt = self.evaluate(mid_t)
+                    pt[axis] = round(pt[axis])
+                    print('insert', mid_t, pt)
+                    if mid_t in {t for t, n, p, c in self.subdivisions}:
+                        print(t, pt)
+                        exit()
+                    self.subdivisions.append((mid_t, next(nums), pt, {crossing_name}))
+                    print(mid_t, len(self.subdivisions))
+                    return True
+        while do_subdiv():
+            await Yield
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
     def __init__(self, x, y):
