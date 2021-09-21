@@ -554,7 +554,6 @@ class Bezier:
                 y = round(y)
                 crossings.add('x')
             self.subdivisions.append((t, next(nums), numpy.array([x, y]), crossings))
-        print(len(self.subdivisions), self.subdivisions)
         def do_subdiv():
             self.subdivisions.sort()
             for (t0, n0, p0, c0), (t1, n1, p1, c1) in zip(self.subdivisions, self.subdivisions[1:]):
@@ -572,19 +571,12 @@ class Bezier:
                     ra0 = math.floor(a0)
                     if ra0 == math.floor(a1):
                         continue
-                    print(
-                        f'finding {axis_name} between {a0:0.6f} and {a1:0.6f} '
-                        + f'that does not round down to {ra0}',
-                    )
-                    print(f'{t0:0.6f} -> {a0:0.6f} -> {math.floor(a0)}')
-                    print(f'{t1:0.6f} -> {a1:0.6f} -> {math.floor(a1)}')
                     lower = t0
                     higher = t1
                     mid_t = (t0 + t1)/2
                     while abs(higher - lower) > 0.000001:
                         mid_a = self.evaluate(mid_t)[axis]
                         same = (math.floor(mid_a) == ra0)
-                        print(f'midpoint {mid_t:0.6f} -> {mid_a:0.6f} {"rounds"if same else "does not round"} to {ra0}')
                         if same:
                             lower = mid_t
                         else:
@@ -592,12 +584,10 @@ class Bezier:
                         mid_t = (lower+higher)/2
                     pt = self.evaluate(mid_t)
                     pt[axis] = round(pt[axis])
-                    print('insert', mid_t, pt)
                     if mid_t in {t for t, n, p, c in self.subdivisions}:
                         print(t, pt)
                         exit()
                     self.subdivisions.append((mid_t, next(nums), pt, {crossing_name}))
-                    print(mid_t, len(self.subdivisions))
                     return True
         while do_subdiv():
             await Yield
