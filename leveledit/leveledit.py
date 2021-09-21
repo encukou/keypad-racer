@@ -27,7 +27,7 @@ Output:
 
 Controls:
 - Middle mouse button: drag to pan
-- [ ] Mouse wheel: zoom
+- Mouse wheel: zoom
 - [ ] Up/Down: Resize control point
 - [ ] F5: Reload auxiliary file
 - R: Reset zoom/pan (also happens on window resize)
@@ -134,6 +134,12 @@ class EditorState:
         y -= dy / self.zoom
         self.view_center = x, y
 
+    def adjust_zoom(self, x, y, dz):
+        cx, cy = window.width / 2, window.height / 2
+        self.pan(cx-x, cy-y)
+        self.zoom *= 1.1**dz
+        self.pan(x-cx, y-cy)
+
     def maybe_reload_input(self, dt=0):
         st = self.input_path.stat()
         stat_info = st.st_mtime, st.st_size
@@ -160,11 +166,15 @@ class EditorState:
         )
         print(self.bb)
 
-    def screen_to_model(self, x, y):
-        return (
-            x/self.zoom + self.view_center[0] - window.width/2/self.zoom,
-            y/self.zoom + self.view_center[1] - window.height/2/self.zoom,
-        )
+    def screen_to_model(self, sx, sy):
+        mx = sx/self.zoom + self.view_center[0] - window.width/2/self.zoom
+        my = sy/self.zoom + self.view_center[1] - window.height/2/self.zoom
+        return mx, my
+
+    def model_to_screen(self, mx, my):
+        sx = self.zoom * (mx - self.view_center[0]) + window.width/2
+        sy = self.zoom * (my - self.view_center[1]) + window.height/2
+        return sx, sy
 
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -232,6 +242,10 @@ def on_mouse_drag(x, y, dx, dy, button, mod):
     if button & pyglet.window.mouse.MIDDLE:
         state.pan(dx, dy)
     state.mouse_pos = x, y
+
+@window.event
+def on_mouse_scroll(x, y, sx, sy):
+    state.adjust_zoom(x, y, sy)
 
 @window.event
 def on_resize(w, h):
