@@ -312,14 +312,22 @@ class EditorState:
         await Yield
         print('Task starting')
         segments = self.segments
-        for segment in segments:
-            if segments is not self.segments:
-                return
-            if segment.done:
-                continue
+        def iter_segments():
+            for segment in segments:
+                if segments is not self.segments:
+                    return
+                if segment.done:
+                    continue
+                yield segment
+        for segment in iter_segments():
             segment.set_borders()
-            segment.done = True
             await Yield
+        for segment in iter_segments():
+            for border in segment.borders:
+                border.subdivide()
+                await Yield
+        for segment in iter_segments():
+            segment.done = True
         print('Task done')
 
     def draw(self):
@@ -403,10 +411,17 @@ class EditorState:
         for segment in self.segments:
             for border in segment.borders:
                 pyglet.gl.glColor4f(1, 1, 1, .5)
-                pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
                 N = 20
+                pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
                 for i in range(N+1):
                     pyglet.gl.glVertex2f(*border.evaluate(i/N))
+                pyglet.gl.glEnd()
+                pyglet.gl.glColor4f(0, 1, 0, .5)
+                pyglet.gl.glBegin(pyglet.gl.GL_LINES)
+                for t, direction in border.subdivisions.items():
+                    p = {'x': [1/3, 0], 'y': [0, 1/3]}[direction]
+                    pyglet.gl.glVertex2f(*border.evaluate(t) - p)
+                    pyglet.gl.glVertex2f(*border.evaluate(t) + p)
                 pyglet.gl.glEnd()
 
 class Segment:
@@ -470,6 +485,7 @@ class Bezier:
     """Cubic de Casteljau/Bézier curve"""
     def __init__(self, p0, p1, p2, p3):
         self.points = [numpy.array(p) for p in (p0, p1, p2, p3)]
+        self.subdivisions = {}
 
     def evaluate(self, t):
         return (
@@ -478,6 +494,15 @@ class Bezier:
             + 3 * (1-t) * t**2 * self.points[2]
             + t**3 * self.points[3]
         )
+
+    def subdivide(self):
+        self.subdivisions = {
+            0.2: 'x',
+            0.3: 'y',
+            0.7: 'x',
+            0.8: 'x',
+            0.9: 'x',
+        }
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
     def __init__(self, x, y):
