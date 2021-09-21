@@ -121,6 +121,10 @@ def parse_svg_path(path):
                 points.append(points[-1])
                 current_pos = add_point_rel(part, next(path_iter))
                 points.append(points[-1])
+            elif command == 'L':
+                points.append(points[-1])
+                current_pos = add_point_abs(part, next(path_iter))
+                points.append(points[-1])
             else:
                 raise ValueError(f'Unknown SVG path command: {command}')
         else:
@@ -142,17 +146,15 @@ class EditorState:
         self.reset_zoom_pan()
 
     def run_task(self, task):
-        print('Task starting')
         self.task = task.__await__()
         self.drive_task(0)
 
-    def drive_task(self, dt):
+    def drive_task(self, dt=0):
         if self.task is not None:
             try:
                 next(self.task)
             except StopIteration:
                 self.task = None
-                print('Task done')
 
     def reset_zoom_pan(self):
         padding = 10
@@ -307,6 +309,8 @@ class EditorState:
             self.drive_task(0)
 
     async def main_task(self):
+        await Yield
+        print('Task starting')
         segments = self.segments
         for segment in segments:
             if segments is not self.segments:
@@ -316,6 +320,7 @@ class EditorState:
             segment.set_borders()
             segment.done = True
             await Yield
+        print('Task done')
 
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -356,15 +361,14 @@ class EditorState:
             pyglet.gl.glVertex2f(*segment.control2)
         pyglet.gl.glEnd()
         # Circles
-        pyglet.gl.glColor4f(1, 1, 0, .5)
         for i, segment in enumerate(self.segments):
             pyglet.gl.glPushMatrix()
             pyglet.gl.glTranslatef(*segment.start, 0)
-            alpha = 0.5
+            alpha = 0.2
             if numpy.isnan(segment.start.normal).any():
                 pyglet.gl.glColor4f(1, 0, 0, alpha)
             elif segment == self.active_segment:
-                pyglet.gl.glColor4f(0, 1, 0, alpha)
+                pyglet.gl.glColor4f(0, 1, 0, 0.5)
             else:
                 pyglet.gl.glColor4f(1, 1, 0, alpha)
             size = segment.start.size * 2
@@ -487,6 +491,8 @@ class Node(collections.namedtuple('C', ['x', 'y'])):
 
     @size.setter
     def size(self, new):
+        if new < 1/4:
+            new = 1/4
         self._size = new
         try:
             del self.normal
@@ -552,6 +558,15 @@ def on_key_press(key, mod):
         state.set_first_segment()
         state.apply_change()
 
-pyglet.clock.schedule_interval(state.drive_task, 1/1000)
+pyglet.clock.schedule_interval(state.drive_task, 1/10)
 
+class EventLoop(pyglet.app.EventLoop):
+    def idle(self):
+        state.drive_task()
+        wt = super().idle()
+        if state.task:
+            return 0
+        return wt
+
+pyglet.app.event_loop = EventLoop()
 pyglet.app.run()
