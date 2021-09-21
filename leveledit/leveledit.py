@@ -28,12 +28,12 @@ Output:
 Controls:
 - Middle mouse button: drag to pan
 - Mouse wheel: zoom
-- R: Reset zoom/pan (also happens on window resize)
+- `R` key: Reset zoom/pan (also happens on window resize)
 
-- Up/Down: Resize control point
-- Left/Right: Resize control point (fine adjustment)
-- S: Set start point
-- F5: Reload auxiliary file
+- Up/Down drag: Resize control point
+- Left/Right drag: Resize control point (fine adjustment)
+- `1` key: Set start point
+- `F5` key: Reload auxiliary file
 """
 
 import os
@@ -57,6 +57,7 @@ except IndexError:
 
 circle = pyglet.image.load(Path(__file__).parent / 'circle.png')
 startcirc = pyglet.image.load(Path(__file__).parent / 'start.png')
+halfcirc = pyglet.image.load(Path(__file__).parent / 'half_circ.png')
 
 window = pyglet.window.Window(
     width=1000,
@@ -102,7 +103,7 @@ def parse_svg_path(path):
                 raise ValueError('circuit can only have a single path')
             current_pos = add_point_rel(next(path_iter), next(path_iter))
             command = 'l'
-        elif part in 'Cc':
+        elif part in 'CcLl':
             command = part
         elif part == 'z':
             points.append(points[0])
@@ -116,6 +117,10 @@ def parse_svg_path(path):
                 add_point_rel(part, next(path_iter))
                 add_point_rel(next(path_iter), next(path_iter))
                 current_pos = add_point_rel(next(path_iter), next(path_iter))
+            elif command == 'l':
+                points.append(points[-1])
+                current_pos = add_point_rel(part, next(path_iter))
+                points.append(points[-1])
             else:
                 raise ValueError(f'Unknown SVG path command: {command}')
         else:
@@ -139,6 +144,7 @@ class EditorState:
     def run_task(self, task):
         print('Task starting')
         self.task = task.__await__()
+        self.drive_task(0)
 
     def drive_task(self, dt):
         if self.task is not None:
@@ -197,7 +203,6 @@ class EditorState:
             fun(points, key=operator.itemgetter(i))[i]
             for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
         )
-        print(self.bb)
         seg = Segment(self, *points[:4])
         self.segments = [seg]
         for points in zip(points[4::3], points[5::3], points[6::3]):
@@ -308,22 +313,7 @@ class EditorState:
                 return
             if segment.done:
                 continue
-            snorm = segment.start.normal
-            enorm = segment.end.normal
-            segment.borders = [
-                Bezier(
-                    segment.start.vec + snorm,
-                    segment.start.controls[1] + snorm,
-                    segment.end.controls[0] + enorm,
-                    segment.end.vec + enorm
-                ),
-                Bezier(
-                    segment.start.vec - snorm,
-                    segment.start.controls[1] - snorm,
-                    segment.end.controls[0] - enorm,
-                    segment.end.vec - enorm,
-                ),
-            ]
+            segment.set_borders()
             segment.done = True
             await Yield
 
@@ -368,6 +358,8 @@ class EditorState:
         # Circles
         pyglet.gl.glColor4f(1, 1, 0, .5)
         for i, segment in enumerate(self.segments):
+            pyglet.gl.glPushMatrix()
+            pyglet.gl.glTranslatef(*segment.start, 0)
             alpha = 0.5
             if numpy.isnan(segment.start.normal).any():
                 pyglet.gl.glColor4f(1, 0, 0, alpha)
@@ -375,13 +367,19 @@ class EditorState:
                 pyglet.gl.glColor4f(0, 1, 0, alpha)
             else:
                 pyglet.gl.glColor4f(1, 1, 0, alpha)
-            x, y = segment.start
             size = segment.start.size * 2
             if i == 0:
                 img = startcirc
             else:
                 img = circle
-            img.blit(x-size/2, y-size/2, width=size, height=size)
+            img.blit(-size/2, -size/2, width=size, height=size)
+            # Tangent
+            pyglet.gl.glColor4f(1, 1, 1, 1)
+            pyglet.gl.glBegin(pyglet.gl.GL_LINES)
+            pyglet.gl.glVertex2f(0, 0)
+            pyglet.gl.glVertex2f(*segment.start.tangent)
+            pyglet.gl.glEnd()
+            pyglet.gl.glPopMatrix()
         # Straight lines
         pyglet.gl.glColor4f(1, 1, 1, .15)
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
@@ -402,8 +400,9 @@ class EditorState:
             for border in segment.borders:
                 pyglet.gl.glColor4f(1, 1, 1, .5)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
-                for i in range(100):
-                    pyglet.gl.glVertex2f(*border.evaluate(i/100))
+                N = 20
+                for i in range(N+1):
+                    pyglet.gl.glVertex2f(*border.evaluate(i/N))
                 pyglet.gl.glEnd()
 
 class Segment:
@@ -423,11 +422,45 @@ class Segment:
         self.borders = []
         self.done = False
         self.state = state
+        self.curve_angles = []
 
     def set_dirty(self, recursive=False):
         if self.done:
             self.done = False
             self.state.run_task(state.main_task())
+
+    def set_borders(self):
+        snorm = self.start.normal
+        enorm = self.end.normal
+        ctr1_vec = self.start.controls[1] - self.start.vec
+        ctr2_vec = self.end.controls[0] - self.end.vec
+        def normalize(v):
+            return v / numpy.linalg.norm(v)
+        direction = self.end.vec - self.start.vec
+        def angle_between(v1, v2):
+            cross = numpy.cross(normalize(v1), normalize(v2))
+            sgn = 1 if cross >0 else -1
+            return cross
+        self.curve_angles = [
+            angle_between(self.start.tangent, direction),
+            angle_between(-self.end.tangent, direction),
+        ]
+        start_adjust = (1+self.curve_angles[0]/3)
+        end_adjust = (1+self.curve_angles[1]/3)
+        self.borders = [
+            Bezier(
+                self.start.vec + snorm,
+                self.start.vec + ctr1_vec / start_adjust + snorm,
+                self.end.vec + ctr2_vec / end_adjust + enorm,
+                self.end.vec + enorm
+            ),
+            Bezier(
+                self.start.vec - snorm,
+                self.start.vec + ctr1_vec * start_adjust - snorm,
+                self.end.vec + ctr2_vec * end_adjust - enorm,
+                self.end.vec - enorm,
+            ),
+        ]
 
 class Bezier:
     """Cubic de Casteljau/Bézier curve"""
@@ -459,14 +492,18 @@ class Node(collections.namedtuple('C', ['x', 'y'])):
             del self.normal
         except AttributeError:
             pass
-        print(self.segments)
         for seg in self.segments:
             seg.set_dirty()
 
     @functools.cached_property
+    def tangent(self):
+        tan = self.controls[1] - self.controls[0]
+        return tan / numpy.linalg.norm(tan)
+
+    @functools.cached_property
     def normal(self):
-        tan = (self.controls[0] - self.vec) - (self.controls[1] - self.vec)
-        normal = numpy.array([-tan[1], tan[0]]) / numpy.linalg.norm(tan)
+        tan = self.tangent
+        normal = numpy.array([-tan[1], tan[0]])
         return normal * self.size
 
 state = EditorState(level_name)
@@ -511,7 +548,7 @@ def on_key_press(key, mod):
         state.reset_zoom_pan()
     elif key == pyglet.window.key.F5:
         state.read_aux()
-    elif key == pyglet.window.key.S:
+    elif key == pyglet.window.key._1:
         state.set_first_segment()
         state.apply_change()
 
