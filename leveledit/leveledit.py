@@ -45,6 +45,8 @@ import operator
 import collections
 import json
 import functools
+import itertools
+import math
 
 import pyglet
 import numpy
@@ -67,6 +69,8 @@ window = pyglet.window.Window(
 )
 if 'GAME_DEVEL_ENVIRON' in os.environ:
     window.set_location(200, 200)
+if 'GAME_DEVEL_ENVIRON2' in os.environ:
+    window.set_location(1100, 0)
 
 class Yield:
     def __await__(self):
@@ -157,6 +161,7 @@ class EditorState:
                 self.task = None
 
     def reset_zoom_pan(self):
+        print('reset')
         padding = 10
         x1, y1, x2, y2 = self.bb
         x1 -= padding
@@ -180,6 +185,11 @@ class EditorState:
         self.pan(cx-x, cy-y)
         self.zoom *= 1.1**dz
         self.pan(x-cx, y-cy)
+
+    def _zoom_to_detail(self, arg=None):
+        segment = self.segments[17]
+        self.view_center = segment.start.vec
+        self.zoom = 40
 
     def maybe_reload_input(self, dt=0):
         st = self.input_path.stat()
@@ -313,7 +323,7 @@ class EditorState:
         print('Task starting')
         segments = self.segments
         def iter_segments():
-            for segment in segments:
+            for segment in segments[16:]+segments[:16]:
                 if segments is not self.segments:
                     return
                 if segment.done:
@@ -324,9 +334,8 @@ class EditorState:
             await Yield
         for segment in iter_segments():
             for border in segment.borders:
-                border.subdivide()
+                await border.subdivide()
                 await Yield
-        for segment in iter_segments():
             segment.done = True
         print('Task done')
 
@@ -418,10 +427,22 @@ class EditorState:
                 pyglet.gl.glEnd()
                 pyglet.gl.glColor4f(0, 1, 0, .5)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINES)
-                for t, direction in border.subdivisions.items():
-                    p = {'x': [1/3, 0], 'y': [0, 1/3]}[direction]
-                    pyglet.gl.glVertex2f(*border.evaluate(t) - p)
-                    pyglet.gl.glVertex2f(*border.evaluate(t) + p)
+                for t, n, pt, crossings in border.subdivisions:
+                    if 'x' in crossings:
+                        p = [1/3, 0]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
+                    if 'y' in crossings:
+                        p = [0, 1/3]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
+                    if 's' in crossings:
+                        p = [1/3, 1/3]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
+                        p = [1/3, -1/3]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
                 pyglet.gl.glEnd()
 
 class Segment:
@@ -485,7 +506,7 @@ class Bezier:
     """Cubic de Casteljau/Bézier curve"""
     def __init__(self, p0, p1, p2, p3):
         self.points = [numpy.array(p) for p in (p0, p1, p2, p3)]
-        self.subdivisions = {}
+        self.subdivisions = []
 
     def evaluate(self, t):
         return (
@@ -495,14 +516,23 @@ class Bezier:
             + t**3 * self.points[3]
         )
 
-    def subdivide(self):
-        self.subdivisions = {
-            0.2: 'x',
-            0.3: 'y',
-            0.7: 'x',
-            0.8: 'x',
-            0.9: 'x',
-        }
+    async def subdivide(self):
+        nums = itertools.count()
+        self.subdivisions = []
+        def is_almost_int(w):
+            r = round(w)
+            return abs(w-r) < 0.03
+        for t in 0, 1:
+            crossings = {'s'}
+            x, y = pt = self.evaluate(t)
+            if is_almost_int(x):
+                x = round(x)
+                crossings.add('y')
+            if is_almost_int(y):
+                y = round(y)
+                crossings.add('x')
+            self.subdivisions.append((t, next(nums), numpy.array([x, y]), crossings))
+        print(len(self.subdivisions), self.subdivisions)
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
     def __init__(self, x, y):
@@ -552,7 +582,7 @@ def on_mouse_motion(x, y, dx, dy):
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, button, mod):
-    if button & pyglet.window.mouse.MIDDLE:
+    if button & (pyglet.window.mouse.MIDDLE|pyglet.window.mouse.RIGHT):
         state.pan(dx, dy)
     elif button & pyglet.window.mouse.LEFT:
         state.resize_width(dx/5 + dy*2)
@@ -592,6 +622,8 @@ class EventLoop(pyglet.app.EventLoop):
         if state.task:
             return 0
         return wt
+
+pyglet.clock.schedule_once(state._zoom_to_detail, 0.1)
 
 pyglet.app.event_loop = EventLoop()
 pyglet.app.run()
