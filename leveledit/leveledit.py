@@ -39,6 +39,7 @@ from pathlib import Path
 import xml.sax.handler
 import re
 import operator
+import collections
 
 import pyglet
 import numpy
@@ -111,7 +112,9 @@ class EditorState:
         self.input_path = Path(f'{level_name}.svg').resolve()
         self.aux_path = Path(f'{level_name}.json').resolve()
         self.output_path = Path(f'{level_name}.png').resolve()
-        self.mouse_pos = 0, 0
+        self.mouse_pos = window.width / 2, window.height / 2
+        self.zoom = 1
+        self.view_center = 0, 0
         self.maybe_reload_input()
         self.reset_zoom_pan()
 
@@ -126,7 +129,7 @@ class EditorState:
         y_zoom = abs(window.height / (y2 - y1))
         self.zoom = min(x_zoom, y_zoom)
         self.view_center = (x2 + x1)/2, (y2 + y1)/2
-        print(self.zoom)
+        self.mouse_moved()
 
     def pan(self, dx, dy):
         x, y = self.view_center
@@ -159,12 +162,19 @@ class EditorState:
             xml.sax.parse(f, Handler())
         if path is None:
             raise ValueError('Did not find a path with id=circuit')
-        self.points = parse_svg_path(path)
+        points = parse_svg_path(path)
         self.bb = tuple(
-            fun(self.points, key=operator.itemgetter(i))[i]
+            fun(points, key=operator.itemgetter(i))[i]
             for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
         )
         print(self.bb)
+        seg = Segment(*points[:4])
+        self.segments = [seg]
+        for points in zip(points[3::3], points[4::3], points[5::3]):
+            seg = Segment(seg.end, *points)
+            self.segments.append(seg)
+        self.segments[0].start = seg.end
+        self.mouse_moved()
 
     def screen_to_model(self, sx, sy):
         mx = sx/self.zoom + self.view_center[0] - window.width/2/self.zoom
@@ -175,6 +185,17 @@ class EditorState:
         sx = self.zoom * (mx - self.view_center[0]) + window.width/2
         sy = self.zoom * (my - self.view_center[1]) + window.height/2
         return sx, sy
+
+    def mouse_moved(self, x=None, y=None):
+        if x is not None and y is not None:
+            self.mouse_pos = x, y
+        else:
+            x, y = self.mouse_pos
+        mx, my = self.screen_to_model(x, y)
+        self.active_segment = min(
+            self.segments,
+            key=lambda seg: (seg.start[0]-mx)**2 + (seg.start[1]-my)**2,
+        )
 
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -204,25 +225,43 @@ class EditorState:
         # Control points
         pyglet.gl.glColor4f(0, 0.5, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINES)
-        for point1, point2 in zip(self.points[0::3], self.points[1::3]):
-            pyglet.gl.glVertex2f(*point1)
-            pyglet.gl.glVertex2f(*point2)
-        for point1, point2 in zip(self.points[2::3], self.points[3::3]):
-            pyglet.gl.glVertex2f(*point1)
-            pyglet.gl.glVertex2f(*point2)
+        for segment in self.segments:
+            pyglet.gl.glVertex2f(*segment.start)
+            pyglet.gl.glVertex2f(*segment.control1)
+            pyglet.gl.glVertex2f(*segment.end)
+            pyglet.gl.glVertex2f(*segment.control2)
         pyglet.gl.glEnd()
         # Circles
         pyglet.gl.glColor4f(1, 1, 0, .5)
-        for point in self.points[:-3:3]:
-            x, y = point
-            size = 5
+        for segment in self.segments:
+            if segment == self.active_segment:
+                pyglet.gl.glColor4f(0, 1, 0, .5)
+            else:
+                pyglet.gl.glColor4f(1, 1, 0, .5)
+            x, y = segment.start
+            size = segment.start.size
             circle.blit(x-size/2, y-size/2, width=size, height=size)
         # Straight lines
         pyglet.gl.glColor4f(1, 1, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
-        for point in self.points[::3]:
-            pyglet.gl.glVertex2f(*point)
+        for segment in self.segments:
+            pyglet.gl.glVertex2f(*segment.start)
+            pyglet.gl.glVertex2f(*segment.end)
         pyglet.gl.glEnd()
+
+class Segment:
+    def __init__(self, start, control1, control2, end):
+        if isinstance(start, Node):
+            self.start = start
+        else:
+            self.start = Node(*start)
+        self.control1 = control1
+        self.control2 = control2
+        self.end = Node(*end)
+
+class Node(collections.namedtuple('C', ['x', 'y'])):
+    def __init__(self, x, y):
+        self.size = 5
 
 state = EditorState(level_name)
 
@@ -235,17 +274,18 @@ def on_draw():
 
 @window.event
 def on_mouse_motion(x, y, dx, dy):
-    state.mouse_pos = x, y
+    state.mouse_moved(x, y)
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, button, mod):
     if button & pyglet.window.mouse.MIDDLE:
         state.pan(dx, dy)
-    state.mouse_pos = x, y
+    state.mouse_moved(x, y)
 
 @window.event
 def on_mouse_scroll(x, y, sx, sy):
     state.adjust_zoom(x, y, sy)
+    state.mouse_moved(x, y)
 
 @window.event
 def on_resize(w, h):
