@@ -19,7 +19,7 @@ Input:
 
 Auxiliary file:
 - LEVEL_NAME.json with extra information
-  [ ] If missing, it will be generated (from an output file, or empty).
+  If missing, it will be generated (from an output file, or empty).
 
 Output:
 - Level file `LEVEL_NAME.png`, containing collision data (as the image),
@@ -28,9 +28,12 @@ Output:
 Controls:
 - Middle mouse button: drag to pan
 - Mouse wheel: zoom
-- [ ] Up/Down: Resize control point
-- [ ] F5: Reload auxiliary file
 - R: Reset zoom/pan (also happens on window resize)
+
+- Up/Down: Resize control point
+- Left/Right: Resize control point (fine adjustment)
+- S: Set start point
+- F5: Reload auxiliary file
 """
 
 import os
@@ -40,6 +43,7 @@ import xml.sax.handler
 import re
 import operator
 import collections
+import json
 
 import pyglet
 import numpy
@@ -51,6 +55,7 @@ except IndexError:
     exit(1)
 
 circle = pyglet.image.load(Path(__file__).parent / 'circle.png')
+startcirc = pyglet.image.load(Path(__file__).parent / 'start.png')
 
 window = pyglet.window.Window(
     width=1000,
@@ -114,6 +119,7 @@ class EditorState:
         self.output_path = Path(f'{level_name}.png').resolve()
         self.mouse_pos = window.width / 2, window.height / 2
         self.zoom = 1
+        self.changing = False
         self.view_center = 0, 0
         self.maybe_reload_input()
         self.reset_zoom_pan()
@@ -170,11 +176,51 @@ class EditorState:
         print(self.bb)
         seg = Segment(*points[:4])
         self.segments = [seg]
-        for points in zip(points[3::3], points[4::3], points[5::3]):
+        for points in zip(points[4::3], points[5::3], points[6::3]):
             seg = Segment(seg.end, *points)
             self.segments.append(seg)
         self.segments[0].start = seg.end
         self.mouse_moved()
+        self.read_aux()
+
+    def read_aux(self):
+        try:
+            f = self.aux_path.open()
+        except FileNotFoundError:
+            return
+        else:
+            with f:
+                aux_data = json.load(f)
+        unassigned_segments = list(self.segments)
+        points = list(aux_data.get('points', ()))
+        first_segment = self.segments[0]
+        while unassigned_segments and points:
+            best_pair = 0, 0
+            best_distance = None
+            for pi, point in enumerate(points):
+                pos = point.get('pos', (0,0))
+                for si, segment in enumerate(unassigned_segments):
+                    distance = (
+                        (pos[0] - segment.start[0])**2
+                        +(pos[1] - segment.start[1])**2
+                    )
+                    if best_distance is None or distance < best_distance:
+                        best_pair = pi, si
+                        best_distance = distance
+                        if best_distance == 0:
+                            break
+            point = points.pop(best_pair[0])
+            segment = unassigned_segments.pop(best_pair[1])
+            if point.get('first'):
+                first_segment = segment
+            if r := point.get('radius'):
+                segment.start.size = r
+        if points:
+            print('Unassigned points:')
+            for pt in points:
+                print(pt)
+        self.set_first_segment(first_segment)
+        self.changing = False
 
     def screen_to_model(self, sx, sy):
         mx = sx/self.zoom + self.view_center[0] - window.width/2/self.zoom
@@ -197,6 +243,33 @@ class EditorState:
             key=lambda seg: (seg.start[0]-mx)**2 + (seg.start[1]-my)**2,
         )
 
+    def resize_width(self, dr):
+        self.active_segment.start.size += dr / self.zoom
+        self.changing = True
+
+    def set_first_segment(self, first_segment=None):
+        if first_segment is None:
+            first_segment = self.active_segment
+        for i in range(len(self.segments)):
+            if first_segment == self.segments[0]:
+                break
+            self.segments.append(self.segments.pop(0))
+        self.changing = True
+
+    def apply_change(self):
+        if not self.changing:
+            return
+        self.changing = False
+        points = []
+        for i, seg in enumerate(self.segments):
+            point = {'pos': seg.start, 'radius': seg.start.size}
+            if i == 0:
+                point['first'] = True
+            points.append(point)
+        data = {'points': points}
+        with self.aux_path.open('w') as f:
+            json.dump(data, f, indent=4)
+
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
         pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -211,17 +284,21 @@ class EditorState:
         circle.blit(mouse_x-size/2, mouse_y-size/2, width=size, height=size)
         # Grid
         pyglet.gl.glColor4f(.25, 0, 0, 1)
-        pyglet.gl.glBegin(pyglet.gl.GL_LINES)
         x1, y1 = self.screen_to_model(0, 0)
         x2, y2 = self.screen_to_model(window.width, window.height)
-        for u in range(-10, 10):
+        for u in range(-10, 11):
+            if -4 <= u <= 4:
+                pyglet.gl.glColor4f(.4, 0, 0, 1)
+            else:
+                pyglet.gl.glColor4f(.2, 0, 0, 1)
             gx = round(mouse_x) + u
             gy = round(mouse_y) + u
+            pyglet.gl.glBegin(pyglet.gl.GL_LINES)
             pyglet.gl.glVertex2f(gx, y1)
             pyglet.gl.glVertex2f(gx, y2)
             pyglet.gl.glVertex2f(x1, gy)
             pyglet.gl.glVertex2f(x2, gy)
-        pyglet.gl.glEnd()
+            pyglet.gl.glEnd()
         # Control points
         pyglet.gl.glColor4f(0, 0.5, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINES)
@@ -233,14 +310,19 @@ class EditorState:
         pyglet.gl.glEnd()
         # Circles
         pyglet.gl.glColor4f(1, 1, 0, .5)
-        for segment in self.segments:
+        for i, segment in enumerate(self.segments):
+            alpha = 0.5
             if segment == self.active_segment:
-                pyglet.gl.glColor4f(0, 1, 0, .5)
+                pyglet.gl.glColor4f(0, 1, 0, alpha)
             else:
-                pyglet.gl.glColor4f(1, 1, 0, .5)
+                pyglet.gl.glColor4f(1, 1, 0, alpha)
             x, y = segment.start
             size = segment.start.size
-            circle.blit(x-size/2, y-size/2, width=size, height=size)
+            if i == 0:
+                img = startcirc
+            else:
+                img = circle
+            img.blit(x-size/2, y-size/2, width=size, height=size)
         # Straight lines
         pyglet.gl.glColor4f(1, 1, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
@@ -280,7 +362,14 @@ def on_mouse_motion(x, y, dx, dy):
 def on_mouse_drag(x, y, dx, dy, button, mod):
     if button & pyglet.window.mouse.MIDDLE:
         state.pan(dx, dy)
-    state.mouse_moved(x, y)
+    elif button & pyglet.window.mouse.LEFT:
+        state.resize_width(dx/5 + dy*2)
+    else:
+        state.mouse_moved(x, y)
+
+@window.event
+def on_mouse_release(x, y, button, mod):
+    state.apply_change()
 
 @window.event
 def on_mouse_scroll(x, y, sx, sy):
@@ -295,5 +384,10 @@ def on_resize(w, h):
 def on_key_press(key, mod):
     if key == pyglet.window.key.R:
         state.reset_zoom_pan()
+    elif key == pyglet.window.key.F5:
+        state.read_aux()
+    elif key == pyglet.window.key.S:
+        state.set_first_segment()
+        state.apply_change()
 
 pyglet.app.run()
