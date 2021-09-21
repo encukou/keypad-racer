@@ -26,7 +26,7 @@ Output:
   rail data (as a custom chunks) and a copy of the auxiliary file.
 
 Controls:
-- [ ] Middle mouse button: drag to pan
+- Middle mouse button: drag to pan
 - [ ] Mouse wheel: zoom
 - [ ] Up/Down: Resize control point
 - [ ] F5: Reload auxiliary file
@@ -125,8 +125,14 @@ class EditorState:
         x_zoom = abs(window.width / (x2 - x1))
         y_zoom = abs(window.height / (y2 - y1))
         self.zoom = min(x_zoom, y_zoom)
-        self.pan = (x2 + x1)/2, (y2 + y1)/2
+        self.view_center = (x2 + x1)/2, (y2 + y1)/2
         print(self.zoom)
+
+    def pan(self, dx, dy):
+        x, y = self.view_center
+        x -= dx / self.zoom
+        y -= dy / self.zoom
+        self.view_center = x, y
 
     def maybe_reload_input(self, dt=0):
         st = self.input_path.stat()
@@ -156,8 +162,8 @@ class EditorState:
 
     def screen_to_model(self, x, y):
         return (
-            x/self.zoom + self.pan[0] - window.width/2/self.zoom,
-            y/self.zoom + self.pan[1] - window.height/2/self.zoom,
+            x/self.zoom + self.view_center[0] - window.width/2/self.zoom,
+            y/self.zoom + self.view_center[1] - window.height/2/self.zoom,
         )
 
     def draw(self):
@@ -166,7 +172,7 @@ class EditorState:
         pyglet.gl.glLoadIdentity()
         pyglet.gl.glTranslatef(window.width/2, window.height/2, 0)
         pyglet.gl.glScalef(self.zoom, self.zoom, 1)
-        pyglet.gl.glTranslatef(-self.pan[0], -self.pan[1], 0)
+        pyglet.gl.glTranslatef(-self.view_center[0], -self.view_center[1], 0)
         # Mouse
         pyglet.gl.glColor4f(0, 1, 0, 0.6)
         mouse_x, mouse_y = self.screen_to_model(*self.mouse_pos)
@@ -223,6 +229,8 @@ def on_mouse_motion(x, y, dx, dy):
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, button, mod):
+    if button & pyglet.window.mouse.MIDDLE:
+        state.pan(dx, dy)
     state.mouse_pos = x, y
 
 @window.event
