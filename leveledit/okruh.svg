@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="800"
+   height="600"
+   viewBox="0 0 211.66667 158.75"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1 (c68e22c387, 2021-05-23)"
+   sodipodi:docname="okruh.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="px"
+     showgrid="true"
+     inkscape:zoom="22.627417"
+     inkscape:cx="70.666484"
+     inkscape:cy="-190.05704"
+     inkscape:window-width="1920"
+     inkscape:window-height="985"
+     inkscape:window-x="1440"
+     inkscape:window-y="2192"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     inkscape:snap-grids="false">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4783" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2">
+    <inkscape:path-effect
+       effect="bspline"
+       id="path-effect5643"
+       is_visible="true"
+       lpeversion="1"
+       weight="33.333333"
+       steps="2"
+       helper_size="0"
+       apply_no_weight="true"
+       apply_with_weight="true"
+       only_selected="false" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-127)">
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -0.33385122,273.56083 c -0.11155212,-4.46966 3.56273272,-6.78726 7.24470412,-6.86052 3.5454121,-0.0705 7.0979501,1.93987 7.2844471,6.11359 0.177434,3.97091 -0.300431,6.2453 1.398159,9.89178 1.860829,3.99477 8.419127,22.15838 15.355884,31.65483 8.860531,12.13011 11.325526,-14.53884 20.732073,-1.57467 l 16.315148,22.48566 c 3.912111,5.3917 0.117288,7.48121 -4.089393,9.05694 -7.298372,2.7338 -8.070266,-1.38544 -8.264655,-2.86509 -1.158826,-8.82074 -9.231143,-6.05463 -9.839024,-1.21433 -0.396251,3.15519 -0.278017,6.5403 -0.890014,11.64641 -0.519025,4.33041 2.999955,4.96359 6.392657,3.80973 4.172401,-1.41904 8.200293,2.7847 3.628614,8.1233 -2.936362,3.42894 -12.146145,15.39428 -16.625671,26.2558 -2.611441,6.33197 -11.11826,3.50611 -10.203391,-2.97133 0.294092,-2.08223 1.663217,-12.19984 2.021974,-14.43179 0.639625,-3.97933 -3.289886,-5.32684 -5.575005,-3.80795 -2.51013,1.66846 -6.552458,0.004 -6.493825,-3.24719 l -1.683163,-28.50602 c -0.0823,-1.39378 0.599205,-4.25201 0.46528,-6.27964 -0.176163,-2.66712 -0.492833,-6.97751 -5.908326,-5.4215 -5.4154929,1.55601 -11.16557763,1.42814 -11.04219195,-8.29039 0.06680561,-2.99694 0.16576024,-12.92422 0.09091466,-15.65082 0.0029353,-5.27272 -0.01235808,-10.48297 -0.01205039,-15.77049 2.3568e-4,-4.05003 -0.30314554,-12.14631 -0.30314554,-12.14631 z"
+       id="circuit"
+       sodipodi:nodetypes="ssssssssssssssssscsssccss" />
+  </g>
+</svg>
