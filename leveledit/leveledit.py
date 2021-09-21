@@ -1,0 +1,195 @@
+"""
+Level editor and baker
+----------------------
+
+Requirements:
+- python -m pip install  pyglet pillownumpy
+
+Usage:
+   python leveledit.py LEVEL_NAME
+
+Input:
+- A SVG file `LEVEL_NAME.svg` containing a path with id "circuit" (set this in
+  Inkscape's Object Properties).
+  The control points matter.
+  There are some limits on what features are supported -- start with an
+  existing level and undo if you get errors.
+  The editor polls the file for changes and reloads when it finds any.
+  The origin is the start point; cars start going "up"
+
+Auxiliary file:
+- LEVEL_NAME.json with extra information
+  [ ] If missing, it will be generated (from an output file, or empty).
+
+Output:
+- Level file `LEVEL_NAME.png`, containing collision data (as the image),
+  rail data (as a custom chunks) and a copy of the auxiliary file.
+
+Controls:
+- [ ] Middle mouse button: drag to pan
+- [ ] Mouse wheel: zoom
+- [ ] Up/Down: Resize control point
+- [ ] F5: Reload auxiliary file
+- R: Reset zoom/pan (also happens on window resize)
+"""
+
+import os
+import sys
+from pathlib import Path
+import xml.sax.handler
+import re
+import operator
+
+import pyglet
+import numpy
+
+try:
+    level_name = sys.argv[1]
+except IndexError:
+    print(f'Usage: {sys.argv[0]} levelname', file=sys.stderr)
+    exit(1)
+
+
+window = pyglet.window.Window(
+    width=1000,
+    height=1800,
+    resizable=True,
+    caption=f'Level editor: {level_name}'
+)
+if 'GAME_DEVEL_ENVIRON' in os.environ:
+    window.set_location(200, 200)
+
+def parse_svg_path(path):
+    print(path)
+    path_iter = iter(re.split('[ ,]+', path))
+    current_pos = 0, 0
+    points = []
+    command = None
+    def add_point_abs(x, y):
+        point = float(x), -float(y)
+        points.append(point)
+        return point
+    def add_point_rel(dx, dy):
+        x, y = current_pos
+        x += float(dx)
+        y += -float(dy)
+        point = x, y
+        points.append(point)
+        return point
+    for part in path_iter:
+        # For SVG commands see:
+        # https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
+        if part == 'M':
+            if points:
+                raise ValueError('circuit can only have a single path')
+            current_pos = add_point_abs(next(path_iter), next(path_iter))
+            command = 'L'
+        elif part in 'Cc':
+            command = part
+        elif part == 'z':
+            points.append(points[0])
+            command = None
+        elif re.match('[-0-9.]', part):
+            if command == 'C':
+                add_point_abs(part, next(path_iter))
+                add_point_abs(next(path_iter), next(path_iter))
+                current_pos = add_point_abs(next(path_iter), next(path_iter))
+            elif command == 'c':
+                add_point_rel(part, next(path_iter))
+                add_point_rel(next(path_iter), next(path_iter))
+                current_pos = add_point_rel(next(path_iter), next(path_iter))
+            else:
+                raise ValueError(f'Unknown SVG path command: {command}')
+        else:
+            print(path)
+            raise ValueError(f'Unknown SVG path part: {part}')
+    return points
+
+class EditorState:
+    def __init__(self, level_name):
+        self.input_path = Path(f'{level_name}.svg').resolve()
+        self.aux_path = Path(f'{level_name}.json').resolve()
+        self.output_path = Path(f'{level_name}.png').resolve()
+        self.maybe_reload_input()
+        self.reset_zoom_pan()
+
+    def reset_zoom_pan(self):
+        padding = 10
+        x1, y1, x2, y2 = self.bb
+        x1 -= padding
+        x2 += padding
+        y1 -= padding
+        y2 += padding
+        x_zoom = abs(window.width / (x2 - x1))
+        y_zoom = abs(window.height / (y2 - y1))
+        self.zoom = min(x_zoom, y_zoom)
+        self.pan = -(x2 + x1)/2, -(y2 + y1)/2
+        print(self.zoom)
+
+    def maybe_reload_input(self, dt=0):
+        st = self.input_path.stat()
+        stat_info = st.st_mtime, st.st_size
+        try:
+            if stat_info == self.previous_stat_info:
+                return
+        except AttributeError:
+            pass
+        self.previous_stat_info = stat_info
+        path = None
+        class Handler(xml.sax.handler.ContentHandler):
+            def startElement(self, name, attrs):
+                if name == 'path' and attrs.get('id') == 'circuit':
+                    nonlocal path
+                    path = attrs['d']
+        with self.input_path.open() as f:
+            xml.sax.parse(f, Handler())
+        if path is None:
+            raise ValueError('Did not find a path with id=circuit')
+        self.points = parse_svg_path(path)
+        self.bb = tuple(
+            fun(self.points, key=operator.itemgetter(i))[i]
+            for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
+        )
+        print(self.bb)
+
+    def draw(self):
+        pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+        pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
+        pyglet.gl.glLoadIdentity()
+        pyglet.gl.glTranslatef(window.width/2, window.height/2, 0)
+        pyglet.gl.glScalef(self.zoom, self.zoom, 1)
+        pyglet.gl.glTranslatef(*self.pan, 0)
+        pyglet.gl.glColor4f(0, 0.5, 1, .5)
+        pyglet.gl.glBegin(pyglet.gl.GL_LINES)
+        for point1, point2 in zip(self.points[0::3], self.points[1::3]):
+            pyglet.gl.glVertex2f(*point1)
+            pyglet.gl.glVertex2f(*point2)
+        for point1, point2 in zip(self.points[2::3], self.points[3::3]):
+            pyglet.gl.glVertex2f(*point1)
+            pyglet.gl.glVertex2f(*point2)
+        pyglet.gl.glEnd()
+        pyglet.gl.glColor4f(1, 1, 1, .5)
+        pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
+        for point in self.points[::3]:
+            pyglet.gl.glVertex2f(*point)
+        pyglet.gl.glEnd()
+
+state = EditorState(level_name)
+
+pyglet.clock.schedule_interval(state.maybe_reload_input, 1/4)
+
+@window.event
+def on_draw():
+    window.clear()
+    state.draw()
+
+@window.event
+def on_resize(w, h):
+    state.reset_zoom_pan()
+
+@window.event
+def on_key_press(key, mod):
+    if key == pyglet.window.key.R:
+        state.reset_zoom_pan()
+
+pyglet.app.run()
