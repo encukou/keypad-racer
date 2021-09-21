@@ -44,6 +44,7 @@ import re
 import operator
 import collections
 import json
+import functools
 
 import pyglet
 import numpy
@@ -65,6 +66,11 @@ window = pyglet.window.Window(
 )
 if 'GAME_DEVEL_ENVIRON' in os.environ:
     window.set_location(200, 200)
+
+class Yield:
+    def __await__(self):
+        yield 0
+Yield = Yield()
 
 def parse_svg_path(path):
     print(path)
@@ -91,6 +97,11 @@ def parse_svg_path(path):
                 raise ValueError('circuit can only have a single path')
             current_pos = add_point_abs(next(path_iter), next(path_iter))
             command = 'L'
+        elif part == 'm':
+            if points:
+                raise ValueError('circuit can only have a single path')
+            current_pos = add_point_rel(next(path_iter), next(path_iter))
+            command = 'l'
         elif part in 'Cc':
             command = part
         elif part == 'z':
@@ -121,8 +132,21 @@ class EditorState:
         self.zoom = 1
         self.changing = False
         self.view_center = 0, 0
+        self.task = None
         self.maybe_reload_input()
         self.reset_zoom_pan()
+
+    def run_task(self, task):
+        print('Task starting')
+        self.task = task.__await__()
+
+    def drive_task(self, dt):
+        if self.task is not None:
+            try:
+                next(self.task)
+            except StopIteration:
+                self.task = None
+                print('Task done')
 
     def reset_zoom_pan(self):
         padding = 10
@@ -174,12 +198,14 @@ class EditorState:
             for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
         )
         print(self.bb)
-        seg = Segment(*points[:4])
+        seg = Segment(self, *points[:4])
         self.segments = [seg]
         for points in zip(points[4::3], points[5::3], points[6::3]):
-            seg = Segment(seg.end, *points)
+            seg = Segment(self, seg.end, *points)
             self.segments.append(seg)
-        self.segments[0].start = seg.end
+        seg.end = self.segments[0].start
+        seg.end.segments.append(seg)
+        seg.end.controls.insert(0, numpy.array(seg.control2))
         self.mouse_moved()
         self.read_aux()
 
@@ -221,6 +247,7 @@ class EditorState:
                 print(pt)
         self.set_first_segment(first_segment)
         self.changing = False
+        self.run_task(self.main_task())
 
     def screen_to_model(self, sx, sy):
         mx = sx/self.zoom + self.view_center[0] - window.width/2/self.zoom
@@ -254,7 +281,7 @@ class EditorState:
             if first_segment == self.segments[0]:
                 break
             self.segments.append(self.segments.pop(0))
-        self.changing = True
+            self.changing = True
 
     def apply_change(self):
         if not self.changing:
@@ -267,8 +294,38 @@ class EditorState:
                 point['first'] = True
             points.append(point)
         data = {'points': points}
-        with self.aux_path.open('w') as f:
-            json.dump(data, f, indent=4)
+        result = json.dumps(data, indent=4)
+        self.aux_path.write_text(result)
+        print('aux file saved')
+        self.run_task(self.main_task())
+        for i in range(10):
+            self.drive_task(0)
+
+    async def main_task(self):
+        segments = self.segments
+        for segment in segments:
+            if segments is not self.segments:
+                return
+            if segment.done:
+                continue
+            snorm = segment.start.normal
+            enorm = segment.end.normal
+            segment.borders = [
+                Bezier(
+                    segment.start.vec + snorm,
+                    segment.start.controls[1] + snorm,
+                    segment.end.controls[0] + enorm,
+                    segment.end.vec + enorm
+                ),
+                Bezier(
+                    segment.start.vec - snorm,
+                    segment.start.controls[1] - snorm,
+                    segment.end.controls[0] - enorm,
+                    segment.end.vec - enorm,
+                ),
+            ]
+            segment.done = True
+            await Yield
 
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -312,38 +369,105 @@ class EditorState:
         pyglet.gl.glColor4f(1, 1, 0, .5)
         for i, segment in enumerate(self.segments):
             alpha = 0.5
-            if segment == self.active_segment:
+            if numpy.isnan(segment.start.normal).any():
+                pyglet.gl.glColor4f(1, 0, 0, alpha)
+            elif segment == self.active_segment:
                 pyglet.gl.glColor4f(0, 1, 0, alpha)
             else:
                 pyglet.gl.glColor4f(1, 1, 0, alpha)
             x, y = segment.start
-            size = segment.start.size
+            size = segment.start.size * 2
             if i == 0:
                 img = startcirc
             else:
                 img = circle
             img.blit(x-size/2, y-size/2, width=size, height=size)
         # Straight lines
-        pyglet.gl.glColor4f(1, 1, 1, .5)
+        pyglet.gl.glColor4f(1, 1, 1, .15)
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
         for segment in self.segments:
             pyglet.gl.glVertex2f(*segment.start)
             pyglet.gl.glVertex2f(*segment.end)
         pyglet.gl.glEnd()
+        # Normals
+        pyglet.gl.glColor4f(1, 1, 0, .5)
+        pyglet.gl.glBegin(pyglet.gl.GL_LINES)
+        for segment in self.segments:
+            if not numpy.isnan(segment.start.normal).any():
+                pyglet.gl.glVertex2f(*(segment.start.vec))
+                pyglet.gl.glVertex2f(*(segment.start.vec + segment.start.normal))
+        pyglet.gl.glEnd()
+        # Borders
+        for segment in self.segments:
+            for border in segment.borders:
+                pyglet.gl.glColor4f(1, 1, 1, .5)
+                pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
+                for i in range(100):
+                    pyglet.gl.glVertex2f(*border.evaluate(i/100))
+                pyglet.gl.glEnd()
 
 class Segment:
-    def __init__(self, start, control1, control2, end):
+    def __init__(self, state, start, control1, control2, end):
         if isinstance(start, Node):
             self.start = start
         else:
             self.start = Node(*start)
+            self.start.controls = []
+        self.start.segments.append(self)
+        self.start.controls.append(numpy.array(control1))
         self.control1 = control1
         self.control2 = control2
         self.end = Node(*end)
+        self.end.segments.append(self)
+        self.end.controls = [numpy.array(control2)]
+        self.borders = []
+        self.done = False
+        self.state = state
+
+    def set_dirty(self, recursive=False):
+        if self.done:
+            self.done = False
+            self.state.run_task(state.main_task())
+
+class Bezier:
+    """Cubic de Casteljau/Bézier curve"""
+    def __init__(self, p0, p1, p2, p3):
+        self.points = [numpy.array(p) for p in (p0, p1, p2, p3)]
+
+    def evaluate(self, t):
+        return (
+            (1-t)**3 * self.points[0]
+            + 3 * (1-t)**2 * t * self.points[1]
+            + 3 * (1-t) * t**2 * self.points[2]
+            + t**3 * self.points[3]
+        )
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
     def __init__(self, x, y):
-        self.size = 5
+        self.vec = numpy.array([x, y])
+        self._size = 3
+        self.segments = []
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new):
+        self._size = new
+        try:
+            del self.normal
+        except AttributeError:
+            pass
+        print(self.segments)
+        for seg in self.segments:
+            seg.set_dirty()
+
+    @functools.cached_property
+    def normal(self):
+        tan = (self.controls[0] - self.vec) - (self.controls[1] - self.vec)
+        normal = numpy.array([-tan[1], tan[0]]) / numpy.linalg.norm(tan)
+        return normal * self.size
 
 state = EditorState(level_name)
 
@@ -364,6 +488,7 @@ def on_mouse_drag(x, y, dx, dy, button, mod):
         state.pan(dx, dy)
     elif button & pyglet.window.mouse.LEFT:
         state.resize_width(dx/5 + dy*2)
+        state.apply_change()
     else:
         state.mouse_moved(x, y)
 
@@ -389,5 +514,7 @@ def on_key_press(key, mod):
     elif key == pyglet.window.key.S:
         state.set_first_segment()
         state.apply_change()
+
+pyglet.clock.schedule_interval(state.drive_task, 1/1000)
 
 pyglet.app.run()
