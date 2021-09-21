@@ -49,6 +49,7 @@ except IndexError:
     print(f'Usage: {sys.argv[0]} levelname', file=sys.stderr)
     exit(1)
 
+circle = pyglet.image.load(Path(__file__).parent / 'circle.png')
 
 window = pyglet.window.Window(
     width=1000,
@@ -110,6 +111,7 @@ class EditorState:
         self.input_path = Path(f'{level_name}.svg').resolve()
         self.aux_path = Path(f'{level_name}.json').resolve()
         self.output_path = Path(f'{level_name}.png').resolve()
+        self.mouse_pos = 0, 0
         self.maybe_reload_input()
         self.reset_zoom_pan()
 
@@ -123,7 +125,7 @@ class EditorState:
         x_zoom = abs(window.width / (x2 - x1))
         y_zoom = abs(window.height / (y2 - y1))
         self.zoom = min(x_zoom, y_zoom)
-        self.pan = -(x2 + x1)/2, -(y2 + y1)/2
+        self.pan = (x2 + x1)/2, (y2 + y1)/2
         print(self.zoom)
 
     def maybe_reload_input(self, dt=0):
@@ -152,13 +154,38 @@ class EditorState:
         )
         print(self.bb)
 
+    def screen_to_model(self, x, y):
+        return (
+            x/self.zoom + self.pan[0] - window.width/2/self.zoom,
+            y/self.zoom + self.pan[1] - window.height/2/self.zoom,
+        )
+
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
         pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
         pyglet.gl.glLoadIdentity()
         pyglet.gl.glTranslatef(window.width/2, window.height/2, 0)
         pyglet.gl.glScalef(self.zoom, self.zoom, 1)
-        pyglet.gl.glTranslatef(*self.pan, 0)
+        pyglet.gl.glTranslatef(-self.pan[0], -self.pan[1], 0)
+        # Mouse
+        pyglet.gl.glColor4f(0, 1, 0, 0.6)
+        mouse_x, mouse_y = self.screen_to_model(*self.mouse_pos)
+        size = 1
+        circle.blit(mouse_x-size/2, mouse_y-size/2, width=size, height=size)
+        # Grid
+        pyglet.gl.glColor4f(.25, 0, 0, 1)
+        pyglet.gl.glBegin(pyglet.gl.GL_LINES)
+        x1, y1 = self.screen_to_model(0, 0)
+        x2, y2 = self.screen_to_model(window.width, window.height)
+        for u in range(-10, 10):
+            gx = round(mouse_x) + u
+            gy = round(mouse_y) + u
+            pyglet.gl.glVertex2f(gx, y1)
+            pyglet.gl.glVertex2f(gx, y2)
+            pyglet.gl.glVertex2f(x1, gy)
+            pyglet.gl.glVertex2f(x2, gy)
+        pyglet.gl.glEnd()
+        # Control points
         pyglet.gl.glColor4f(0, 0.5, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINES)
         for point1, point2 in zip(self.points[0::3], self.points[1::3]):
@@ -168,6 +195,13 @@ class EditorState:
             pyglet.gl.glVertex2f(*point1)
             pyglet.gl.glVertex2f(*point2)
         pyglet.gl.glEnd()
+        # Circles
+        pyglet.gl.glColor4f(1, 1, 0, .5)
+        for point in self.points[:-3:3]:
+            x, y = point
+            size = 5
+            circle.blit(x-size/2, y-size/2, width=size, height=size)
+        # Straight lines
         pyglet.gl.glColor4f(1, 1, 1, .5)
         pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
         for point in self.points[::3]:
@@ -182,6 +216,14 @@ pyglet.clock.schedule_interval(state.maybe_reload_input, 1/4)
 def on_draw():
     window.clear()
     state.draw()
+
+@window.event
+def on_mouse_motion(x, y, dx, dy):
+    state.mouse_pos = x, y
+
+@window.event
+def on_mouse_drag(x, y, dx, dy, button, mod):
+    state.mouse_pos = x, y
 
 @window.event
 def on_resize(w, h):
