@@ -328,7 +328,7 @@ class EditorState:
         print('Task starting')
         segments = self.segments
         def iter_segments():
-            for segment in segments[16:]+segments[:16]:
+            for segment in segments:
                 if segments is not self.segments:
                     return
                 if segment.done:
@@ -427,7 +427,7 @@ class EditorState:
         for segment in self.segments:
             for border in segment.borders:
                 pyglet.gl.glColor4f(1, 1, 1, .5)
-                if not border.subdivisions:
+                if not segment.done:
                     N = 20
                     pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
                     for i in range(N+1):
@@ -437,7 +437,7 @@ class EditorState:
                 for t, n, pt, crossings in border.subdivisions:
                     pyglet.gl.glVertex2f(*pt)
                 pyglet.gl.glEnd()
-                pyglet.gl.glColor4f(1, 1, 1, .25)
+                pyglet.gl.glColor4f(1, 1, 1, .5)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINES)
                 for t, n, pt, crossings in border.subdivisions:
                     if 'x' in crossings:
@@ -455,7 +455,17 @@ class EditorState:
                         p = [1/6, -1/6]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
+                    if 'c' in crossings:
+                        p = [1/16, 1/16]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
+                        p = [1/16, -1/16]
+                        pyglet.gl.glVertex2f(*pt - p)
+                        pyglet.gl.glVertex2f(*pt + p)
                 pyglet.gl.glEnd()
+
+def normalize(v):
+    return v / numpy.linalg.norm(v)
 
 class Segment:
     def __init__(self, state, start, control1, control2, end):
@@ -486,8 +496,6 @@ class Segment:
         enorm = self.end.normal
         ctr1_vec = self.start.controls[1] - self.start.vec
         ctr2_vec = self.end.controls[0] - self.end.vec
-        def normalize(v):
-            return v / numpy.linalg.norm(v)
         direction = self.end.vec - self.start.vec
         def angle_between(v1, v2):
             cross = numpy.cross(normalize(v1), normalize(v2))
@@ -539,11 +547,13 @@ class Bezier:
         )
 
     async def subdivide(self):
+        EPSILON = 0.001
+        EPSILON2 = 0.01
         nums = itertools.count()
         self.subdivisions = []
         def is_almost_int(w):
             r = round(w)
-            return abs(w-r) < 0.03
+            return abs(w-r) < EPSILON
         for t in 0, 1:
             crossings = {'s'}
             x, y = pt = self.evaluate(t)
@@ -589,7 +599,21 @@ class Bezier:
                         exit()
                     self.subdivisions.append((mid_t, next(nums), pt, {crossing_name}))
                     return True
+                if numpy.linalg.norm(p1 - p0) > EPSILON:
+                    for halving in (0.5,):
+                        mid_t = (1-halving) * t0 + halving * t1
+                        pt = self.evaluate(mid_t)
+
+                        line = p0 - p1
+                        direction = n = numpy.linalg.norm(line)
+                        distance = abs(numpy.cross(pt - p0, p1 - p0))
+                        print(distance)
+                        if distance > EPSILON2:
+                            self.subdivisions.append((mid_t, next(nums), pt, {'c'}))
+                            print('!', t0, t1, p1, p0)
+                            return True
         while do_subdiv():
+            self.subdivisions.sort()
             await Yield
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
@@ -680,8 +704,6 @@ class EventLoop(pyglet.app.EventLoop):
         if state.task:
             return 0
         return wt
-
-pyglet.clock.schedule_once(state._zoom_to_detail, 0.1)
 
 pyglet.app.event_loop = EventLoop()
 pyglet.app.run()
