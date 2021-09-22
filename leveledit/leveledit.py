@@ -482,28 +482,29 @@ class EditorState:
                         pyglet.gl.glVertex2f(*border.evaluate(i/N))
                     pyglet.gl.glEnd()
                 pyglet.gl.glBegin(pyglet.gl.GL_LINE_STRIP)
-                for t, n, pt, crossings in border.subdivisions:
-                    pyglet.gl.glVertex2f(*pt)
+                for s in border.subdivisions:
+                    pyglet.gl.glVertex2f(*s.pt)
                 pyglet.gl.glEnd()
                 pyglet.gl.glColor4f(1, 1, 1, .5)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINES)
-                for t, n, pt, crossings in border.subdivisions:
-                    if 'y' in crossings:
+                for s in border.subdivisions:
+                    pt = s.pt
+                    if 'y' in s.c:
                         p = [1/5, 0]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
-                    if 'x' in crossings:
+                    if 'x' in s.c:
                         p = [0, 1/5]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
-                    if 's' in crossings:
+                    if 's' in s.c:
                         p = [1/6, 1/6]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
                         p = [1/6, -1/6]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
-                    if 'c' in crossings:
+                    if 'c' in s.c:
                         p = [1/16, 1/16]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
@@ -614,6 +615,9 @@ class Bezier:
         EPSILON2 = 0.01
         nums = itertools.count()
         self.subdivisions = []
+        def add_subdiv(t, pt, crossings):
+            p = PointAtBezier(t, next(nums), pt, crossings)
+            self.subdivisions.append(p)
         def is_almost_int(w):
             r = round(w)
             return abs(w-r) < EPSILON
@@ -626,27 +630,27 @@ class Bezier:
             if is_almost_int(y):
                 y = round(y)
                 crossings.add('x')
-            self.subdivisions.append((t, next(nums), numpy.array([x, y]), crossings))
+            add_subdiv(t, numpy.array([x, y]), crossings)
         def do_subdiv():
             self.subdivisions.sort()
-            for (t0, n0, p0, c0), (t1, n1, p1, c1) in zip(self.subdivisions, self.subdivisions[1:]):
+            for s0, s1 in zip(self.subdivisions, self.subdivisions[1:]):
                 for axis_name, crossing_name, axis in ('x', 'y', 0), ('y', 'x', 1):
-                    a0 = p0[axis]
-                    a1 = p1[axis]
+                    a0 = s0.pt[axis]
+                    a1 = s1.pt[axis]
                     if math.floor(a0) == math.floor(a1):
                         continue
                     if math.floor(a0) == a0 and abs(a0-a1) <= 1:
                         continue
                     if math.floor(a1) == a1 and abs(a0-a1) <= 1:
                         continue
-                    a0 = self.evaluate(t0)[axis]
-                    a1 = self.evaluate(t1)[axis]
+                    a0 = self.evaluate(s0.t)[axis]
+                    a1 = self.evaluate(s1.t)[axis]
                     ra0 = math.floor(a0)
                     if ra0 == math.floor(a1):
                         continue
-                    lower = t0
-                    higher = t1
-                    mid_t = (t0 + t1)/2
+                    lower = s0.t
+                    higher = s1.t
+                    mid_t = (lower + higher)/2
                     while abs(higher - lower) > 0.000001:
                         mid_a = self.evaluate(mid_t)[axis]
                         same = (math.floor(mid_a) == ra0)
@@ -657,30 +661,28 @@ class Bezier:
                         mid_t = (lower+higher)/2
                     pt = self.evaluate(mid_t)
                     pt[axis] = round(pt[axis])
-                    if mid_t in {t for t, n, p, c in self.subdivisions}:
-                        print(t, pt)
-                        exit()
-                    self.subdivisions.append((mid_t, next(nums), pt, {crossing_name}))
+                    add_subdiv(mid_t, pt, {crossing_name})
                     return True
             halved_something = False
-            for (t0, n0, p0, c0), (t1, n1, p1, c1) in zip(self.subdivisions, self.subdivisions[1:]):
-                if numpy.linalg.norm(p1 - p0) > EPSILON:
+            for s0, s1 in zip(self.subdivisions, self.subdivisions[1:]):
+                if numpy.linalg.norm(s1.pt - s0.pt) > EPSILON:
                     for halving in (0.5,):
-                        mid_t = (1-halving) * t0 + halving * t1
+                        mid_t = (1-halving) * s0.t + halving * s1.t
                         pt = self.evaluate(mid_t)
 
-                        line = p0 - p1
+                        line = s0.pt - s1.pt
                         direction = n = numpy.linalg.norm(line)
-                        distance = abs(numpy.cross(pt - p0, p1 - p0))
-                        print(distance)
+                        distance = abs(numpy.cross(pt - s0.pt, s1.pt - s0.pt))
                         if distance > EPSILON2:
-                            self.subdivisions.append((mid_t, next(nums), pt, {'c'}))
-                            print('!', t0, t1, p1, p0)
+                            add_subdiv(mid_t, pt, {'c'})
                             halved_something = True
             return halved_something
         while do_subdiv():
             self.subdivisions.sort()
             await Yield
+
+class PointAtBezier(collections.namedtuple('P', ['t', 'n', 'pt', 'c'])):
+    pass
 
 class Node(collections.namedtuple('C', ['x', 'y'])):
     def __init__(self, x, y):
