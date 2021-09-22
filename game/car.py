@@ -1,4 +1,3 @@
-import moderngl
 import struct
 import math
 
@@ -90,12 +89,12 @@ class CarGroup:
             for i, car in enumerate(self.cars):
                 self.line_prog['color'] = car.color
                 self.line_vao.render(
-                    moderngl.LINE_STRIP_ADJACENCY,
+                    self.ctx.LINE_STRIP_ADJACENCY,
                     first=i*(HISTORY_SIZE+2),
                     vertices=HISTORY_SIZE+2,
                 )
             self.vao.render(
-                moderngl.TRIANGLE_STRIP,
+                self.ctx.TRIANGLE_STRIP,
                 instances=len(self.cars),
             )
 

@@ -47,10 +47,12 @@ import json
 import functools
 import itertools
 import math
+import struct
 
 import pyglet
 import numpy
 from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 
 try:
     level_name = sys.argv[1]
@@ -430,7 +432,13 @@ class EditorState:
         byt = update_snapshot()
         mode = 'RGBA'
         img = Image.frombuffer(mode, (width, height), byt, 'raw', mode, 0, -1)
-        img.save(self.output_path)
+        pnginfo = PngInfo()
+        start = self.segments[0].start
+        pnginfo.add(b'stRt', struct.pack(
+            '<ii',
+            round(start.x - xmin), round(start.y - ymin)
+        ))
+        img.save(self.output_path, pnginfo=pnginfo)
         print('Level saved')
 
     def draw(self):
