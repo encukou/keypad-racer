@@ -1,12 +1,11 @@
 #version 330
 
-uniform vec2 pan;
-uniform float zoom;
+uniform vec4 projection_params;
 uniform vec2 resolution;
 uniform float antialias;
 
 vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
-    float wrot = 0.005;
+    float wrot = projection_params.w;
     float swr = sin(wrot);
     float cwr = cos(wrot);
     mat2 rotw = mat2(
@@ -19,9 +18,11 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
         co, so,
         -so, co
     );
+    float zoom = projection_params.z;
     vec2 zoomat = vec2(
         1.0/zoom*resolution.y/resolution.x,
         1.0/zoom
     );
-    return rotw * ((uv * rot + pos - pan) * zoomat + (uv * antialias * rot / resolution));
+    return rotw * ((uv * rot + pos - projection_params.xy) * zoomat
+        + (uv * antialias * rot / resolution));
 }

@@ -4,8 +4,7 @@ class View:
         self.ctx = ctx
         self.programs = []
         self._resolution = 800, 600
-        self._zoom = 10
-        self._pan = 0, 5
+        self._params = [0, 5, 10, 0]
 
     @property
     def resolution(self):
@@ -19,24 +18,26 @@ class View:
 
     @property
     def zoom(self):
-        return self._zoom
+        return self._params[2]
     @zoom.setter
     def zoom(self, zoom):
-        self._zoom = zoom
+        self._params[2] = zoom
+        params = tuple(self._params)
         for program in self.programs:
-            program['zoom'] = zoom
+            program['projection_params'] = params
 
     @property
     def pan(self):
-        return self._pan
+        return self._params[:2]
     @pan.setter
     def pan(self, pan):
-        self._pan = pan
+        self._params[:2] = pan
+        params = tuple(self._params)
         for program in self.programs:
-            program['pan'] = pan
+            program['projection_params'] = params
 
     def adjust_zoom(self, dz=0):
-        zoom = self._zoom * 1.1**dz
+        zoom = self.zoom * 1.1**dz
         zoom_max = self._resolution[1] / 7
         if zoom > zoom_max:
             zoom = zoom_max
@@ -45,14 +46,14 @@ class View:
         self.zoom = zoom
 
     def adjust_pan(self, dx, dy):
-        x, y = self._pan
+        x, y = self._params[:2]
         x += dx
         y += dy
         self.pan = x, y
 
     def register_programs(self, *programs):
         self.programs.extend(programs)
+        params = tuple(self._params)
         for program in programs:
             program['resolution'] = self._resolution
-            program['zoom'] = self._zoom
-            program['pan'] = self._pan
+            program['projection_params'] = params

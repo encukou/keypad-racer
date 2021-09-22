@@ -48,6 +48,7 @@ import functools
 import itertools
 import math
 import struct
+import zlib
 
 import pyglet
 import numpy
@@ -428,11 +429,37 @@ class EditorState:
                             data[x, y, axis] = abs(first - start)
                         if b == last:
                             data[x, y, axis+2] = abs(last - end)
+            update_snapshot()
+            await Yield
+
+        pnginfo = PngInfo()
+
+        for border_id in 0, 1:
+            current = None
+            packeds = []
+            for segment in self.segments:
+                border = segment.borders[border_id]
+                for div in border.subdivisions:
+                    packed = struct.pack('<ee', *(div.pt - (xmin, ymin)))
+                    if packed != current:
+                        packeds.append(packed)
+                        current = packed
+            # Repeat coordinate a bunch of times
+            # to account for closed shape & line_strip_adjacency
+            first_coord = packeds[0]
+            packeds.insert(0, first_coord)
+            packeds.append(first_coord)
+            packeds.append(first_coord)
+            if border_id:
+                packeds.reverse()
+            pnginfo.add(
+                b'raIl',
+                zlib.compress(b''.join(packeds), zlib.Z_BEST_COMPRESSION)
+            )
 
         byt = update_snapshot()
         mode = 'RGBA'
         img = Image.frombuffer(mode, (width, height), byt, 'raw', mode, 0, -1)
-        pnginfo = PngInfo()
         start = self.segments[0].start
         pnginfo.add(b'stRt', struct.pack(
             '<ii',
@@ -679,7 +706,7 @@ class Bezier:
 
     async def subdivide(self):
         EPSILON = 0.001
-        EPSILON2 = 0.01
+        EPSILON2 = 0.1
         nums = itertools.count()
         self.subdivisions = []
         def add_subdiv(t, pt, crossings):

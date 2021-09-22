@@ -1,8 +1,8 @@
 #version 330
 
-uniform float zoom;
-uniform vec2 pan;
+uniform vec4 projection_params;
 uniform vec2 resolution;
+uniform ivec2 grid_origin;
 attribute vec2 uv;
 
 varying vec2 v_uv;
@@ -12,16 +12,19 @@ varying vec2 v_screenuv;
 varying vec2 v_screenuv_norm;
 
 void main() {
-    float wrot = 0.005;
+    float wrot = projection_params.w;
     float swr = sin(wrot);
     float cwr = cos(wrot);
+    vec2 ruv = uv; + grid_origin;
     mat2 rotw = mat2(
         cwr, swr,
         -swr, cwr
     );
-    gl_Position = vec4(uv, 0.0, 1.0);
-    v_uv = (((uv) * zoom) / vec2(resolution.y, resolution.x)*resolution.x + pan) * rotw;
-    v_screenuv = uv;
+    gl_Position = vec4(ruv, 0.0, 1.0);
+    vec2 pan = projection_params.xy;
+    float zoom = projection_params.z;
+    v_uv = (((ruv) * zoom) / vec2(resolution.y, resolution.x)*resolution.x + pan) * rotw;
+    v_screenuv = ruv;
     if (resolution.x > resolution.y) {
         v_screenuv_norm = vec2(
             v_screenuv.x * resolution.x / resolution.y,

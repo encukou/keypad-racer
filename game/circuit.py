@@ -1,5 +1,7 @@
 from pathlib import Path
 import struct
+import sys
+import zlib
 
 import png
 
@@ -16,10 +18,24 @@ class Circuit:
             self.height = height
             for row in reversed(list(rows)):
                 intersection_data.extend(row)
+
+        # Get start point and rail coordinates from custom chunks
+        start_x = start_y = 0
+        rail_data = bytearray()
+        self.rail_pieces = []
         with path.open('rb') as f:
             for chunk_type, content in png.Reader(file=f).chunks():
+                print(chunk_type, len(content))
                 if chunk_type == b'stRt':
                     start_x, start_y = struct.unpack('<ii', content)
+                if chunk_type == b'raIl':
+                    content = zlib.decompress(content)
+                    # Rail coords are 2f2; 4 bytes in total.
+                    self.rail_pieces.append((len(rail_data)//4, len(content)//4))
+                    rail_data.extend(content)
+        if sys.byteorder != 'little':
+            # Byte-swap... hope it works, not tested on actual big endians
+            rail_data[0::2], rail_data[1::2] = rail_data[1::2], rail_data[0::2]
 
         self.intersection_tex = ctx.texture(
             (width, height), 4, intersection_data,
@@ -46,10 +62,32 @@ class Circuit:
             ],
         )
 
-        view.register_programs(grid_prog)
+        rail_vbo = ctx.buffer(rail_data)
+        rail_prog = ctx.program(
+            vertex_shader=resources.get_shader('shaders/rail.vert'),
+            geometry_shader=resources.get_shader('shaders/rail.geom'),
+            fragment_shader=resources.get_shader('shaders/rail.frag'),
+        )
+        rail_prog['grid_origin'] = start_x, start_y
+        rail_prog['antialias'] = 2
+        self.rail_vao = ctx.vertex_array(
+            rail_prog,
+            [
+                (rail_vbo, '2f2', 'point'),
+                (ctx.buffer(b'\xff\xff\xff\x88\x00'), '4f1 u1 /i', 'color', 'thickness'),
+            ],
+        )
+
+        view.register_programs(grid_prog, rail_prog)
 
     def draw(self):
         self.intersection_tex.use(location=0)
         self.grid_vao.render(
             self.ctx.TRIANGLE_STRIP,
         )
+        for start, num in self.rail_pieces:
+            self.rail_vao.render(
+                self.ctx.LINE_STRIP_ADJACENCY,
+                first=start,
+                vertices=num,
+            )
