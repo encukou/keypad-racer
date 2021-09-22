@@ -511,6 +511,8 @@ class EditorState:
                         p = [1/16, -1/16]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
+                    pyglet.gl.glVertex2f(*pt)
+                    pyglet.gl.glVertex2f(*pt + s.tangent/2)
                 pyglet.gl.glEnd()
         # All control points
         pyglet.gl.glColor4f(1, 1, 1, 1)
@@ -610,6 +612,18 @@ class Bezier:
             + t**3 * self.points[3]
         )
 
+    def evaluate_tangent(self, t):
+        v = (
+            (-3 * (1-t)**2) * self.points[0]
+            + ((3*(1-t)**2 - 6*t*(1-t))) * self.points[1]
+            + (- 3*t**2 + 6*t*(1-t)) * self.points[2]
+            + 3 * t**2 * self.points[3]
+        )
+        if (v == 0).all():
+            # Zero "speed" -> use tangent of entire curve
+            return normalize(self.points[3] - self.points[0])
+        return normalize(v)
+
     async def subdivide(self):
         EPSILON = 0.001
         EPSILON2 = 0.01
@@ -617,6 +631,7 @@ class Bezier:
         self.subdivisions = []
         def add_subdiv(t, pt, crossings):
             p = PointAtBezier(t, next(nums), pt, crossings)
+            p.tangent = self.evaluate_tangent(t)
             self.subdivisions.append(p)
         def is_almost_int(w):
             r = round(w)
