@@ -29,7 +29,7 @@ class Window(pyglet.window.Window):
     def __init__(self):
         print(pyglet.gl.glext_arb)
         kwargs = {
-            'caption': 'pyweek game',
+            'caption': 'Keypad Racer',
             'width': 800,
             'height': 600,
             'resizable': True,
@@ -42,6 +42,7 @@ class Window(pyglet.window.Window):
             double_buffer=True,
         )
         super().__init__(config=config, **kwargs)
+        self.set_minimum_size(640, 480)
         check_gl_extensions()
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)

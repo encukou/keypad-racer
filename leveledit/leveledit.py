@@ -707,6 +707,7 @@ class Bezier:
     async def subdivide(self):
         EPSILON = 0.001
         EPSILON2 = 0.1
+        EPSILON3 = 0.00001
         nums = itertools.count()
         self.subdivisions = []
         def add_subdiv(t, pt, crossings):
@@ -716,7 +717,7 @@ class Bezier:
             self.subdivisions.append(p)
         def is_almost_int(w):
             r = round(w)
-            return abs(w-r) < EPSILON
+            return abs(w-r) < EPSILON3
         for t in 0, 1:
             crossings = {'s'}
             x, y = pt = self.evaluate(t)
