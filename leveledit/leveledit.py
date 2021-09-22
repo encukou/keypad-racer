@@ -410,16 +410,10 @@ class EditorState:
                     elif sgn == -1:
                         regions[-1].append(a)
                     current = sgn
-                print(
-                    axis_name,
-                    strip,
-                    ' '.join(f'{r[0]:7.3f}-{r[1]:7.3f}' for r in regions),
-                )
                 for start, end in regions:
                     first = math.ceil(start)
                     last = math.floor(end)
                     for b in range(first, last+1):
-                        print(strip, b)
                         if axis:
                             x = strip - xmin
                             y = b - ymin
