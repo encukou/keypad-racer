@@ -360,7 +360,7 @@ class EditorState:
         ceil = math.ceil
         xmin, ymin = floor(xmin), floor(ymin)
         xmax, ymax = ceil(xmax), ceil(ymax)
-        width, height = xmax - xmin, ymax - ymin
+        width, height = xmax - xmin+1, ymax - ymin+1
         data = numpy.zeros((width, height, 4))
         def update_snapshot():
             byt = (data*255).astype('u1').transpose((1, 0, 2)).tobytes('C')
@@ -378,13 +378,64 @@ class EditorState:
 
         crossings = {'x': {}, 'y': {}}
         for segment in self.segments:
-            for border in segment.borders:
+            for invert, border in enumerate(segment.borders):
                 for div in border.subdivisions:
                     t, n, (x, y), c = div
-                    data[int(x)-xmin, int(y)-ymin] = (0, 1, 1, 1)
+                    for axis, axis_name in enumerate('xy'):
+                        if axis_name in div.c:
+                            other_axis = 1 - axis
+                            a = div.pt[axis]
+                            b = div.pt[other_axis]
+                            assert b == int(b)
+                            lst = crossings[axis_name].setdefault(int(b), [])
+                            tangent = div.tangent
+                            if invert^axis:
+                                tangent = -tangent
+                            lst.append((
+                                a,
+                                int(numpy.sign(tangent[other_axis])),
+                                div,
+                            ))
+        for axis, axis_name in enumerate('xy'):
+            other_axis = 1 - axis
+            for strip, divs in sorted(crossings[axis_name].items()):
+                divs.sort()
+                current = -1
+                regions = []
+                for a, sgn, d in divs:
+                    if sgn == current:
+                        continue
+                    elif sgn == 1:
+                        regions.append([a])
+                    elif sgn == -1:
+                        regions[-1].append(a)
+                    current = sgn
+                print(
+                    axis_name,
+                    strip,
+                    ' '.join(f'{r[0]:7.3f}-{r[1]:7.3f}' for r in regions),
+                )
+                for start, end in regions:
+                    first = math.ceil(start)
+                    last = math.floor(end)
+                    for b in range(first, last+1):
+                        print(strip, b)
+                        if axis:
+                            x = strip - xmin
+                            y = b - ymin
+                        else:
+                            x = b - xmin
+                            y = strip - ymin
+                        data[x, y, axis] = 1
+                        data[x, y, axis+2] = 1
+                        if b == first:
+                            data[x, y, axis] = abs(first - start)
+                        if b == last:
+                            data[x, y, axis+2] = abs(last - end)
 
         byt = update_snapshot()
-        img = Image.frombuffer('RGBA', (width, height), byt)
+        mode = 'RGBA'
+        img = Image.frombuffer(mode, (width, height), byt, 'raw', mode, 0, -1)
         img.save(self.output_path)
         print('Level saved')
 
@@ -398,7 +449,7 @@ class EditorState:
         # Texture
         pyglet.gl.glColor4f(1, 1, 1, .2)
         if self.tex:
-            self.tex.blit(0, 0)
+            self.tex.blit(-0.5, -0.5)
         # Mouse
         pyglet.gl.glColor4f(0, 1, 0, 0.6)
         mouse_x, mouse_y = self.screen_to_model(*self.mouse_pos)
@@ -632,6 +683,7 @@ class Bezier:
         def add_subdiv(t, pt, crossings):
             p = PointAtBezier(t, next(nums), pt, crossings)
             p.tangent = self.evaluate_tangent(t)
+            p.curve = self
             self.subdivisions.append(p)
         def is_almost_int(w):
             r = round(w)
@@ -695,6 +747,15 @@ class Bezier:
         while do_subdiv():
             self.subdivisions.sort()
             await Yield
+        merged_subdivisions = []
+        current = None
+        for div in self.subdivisions:
+            if current is None or div.t != current.t:
+                merged_subdivisions.append(div)
+                current = div
+            else:
+                current.c.update(div.c)
+        self.subdivisions = merged_subdivisions
 
 class PointAtBezier(collections.namedtuple('P', ['t', 'n', 'pt', 'c'])):
     pass
