@@ -66,12 +66,20 @@ print("code:", ctx.version_code)
 ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
 ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
+from .view import View
+
+view = View(ctx)
+view.resolution = window.width, window.height
+
+from .circuit import Circuit
+
+circ = Circuit(view, 'okruh.png')
+
 from .car import CarGroup, Car
 from .palette import Palette
 pal = Palette()
 
-car_group = CarGroup(ctx, 9)
-car_group.set_resolution(window.width, window.height)
+car_group = CarGroup(view, 9)
 car1 = Car(car_group, pal.player_color(0), (1, 0))
 car2 = Car(car_group, pal.player_color(1), (0, 0))
 car3 = Car(car_group, pal.player_color(2), (2, 0))
@@ -113,6 +121,7 @@ def on_draw():
     fbo = ctx.screen
     fbo.use()
     ctx.clear(0.0, 0.0, 0.0, 0.0)
+    circ.draw()
     car_group.draw()
 
 def tick(dt):
@@ -121,18 +130,18 @@ pyglet.clock.schedule_interval(tick, 1/30)
 
 @window.event
 def on_mouse_scroll(x, y, scroll_x, scroll_y):
-    car_group.adjust_zoom(scroll_y)
+    view.adjust_zoom(scroll_y)
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, mod):
-    car_group.adjust_pan(-dx*car_group.zoom/window.width*4, -dy*car_group.zoom/window.width*4)
+    view.adjust_pan(-dx*view.zoom/window.width*4, -dy*view.zoom/window.width*4)
 
 @window.event
 def on_resize(w, h):
-    print(window.get_framebuffer_size())
-    ctx.scissor = (0, 0, *window.get_framebuffer_size())
-    ctx.viewport = (0, 0, *window.get_framebuffer_size())
-    car_group.set_resolution(w, h)
+    w, h = window.get_framebuffer_size()
+    ctx.scissor = (0, 0, w, h)
+    ctx.viewport = (0, 0, w, h)
+    view.resolution = w, h
 
 def run():
     pyglet.app.run()

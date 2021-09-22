@@ -25,12 +25,10 @@ ACTION_DIRECTIONS = {
 }
 
 class CarGroup:
-    def __init__(self, ctx, max_cars):
-        self.ctx = ctx
+    def __init__(self, view, max_cars):
+        self.ctx = ctx = view.ctx
         self.max_cars = max_cars
         self.cars = []
-        self.zoom = 10
-        self.pan = 0, 0
 
         uv_vertices = bytes((
             1, 255,
@@ -39,17 +37,6 @@ class CarGroup:
             255, 1,
         ))
         uv_vbo = ctx.buffer(uv_vertices)
-
-        self.grid_prog = ctx.program(
-            vertex_shader=resources.get_shader('shaders/grid.vert'),
-            fragment_shader=resources.get_shader('shaders/grid.frag'),
-        )
-        self.grid_vao = ctx.vertex_array(
-            self.grid_prog,
-            [
-                (uv_vbo, '2i1', 'uv'),
-            ],
-        )
 
         self.car_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car.vert'),
@@ -92,14 +79,10 @@ class CarGroup:
             skip_errors=True,
         )
         self.line_prog['antialias'] = 8
-        self.set_resolution(800, 600)
-        self.adjust_zoom(0)
-        self.adjust_pan(0, 0)
+
+        view.register_programs(self.car_prog, self.line_prog)
 
     def draw(self):
-        self.grid_vao.render(
-            moderngl.TRIANGLE_STRIP,
-        )
         for car in self.cars:
             if car.dirty:
                 car.update_group()
@@ -122,35 +105,6 @@ class CarGroup:
             raise ValueError('Too many cars in group')
         self.cars.append(car)
         return result
-
-    def adjust_zoom(self, dz):
-        self.zoom *= 1.1**dz
-        zoom_max = self.resolution[1] / 7
-        if self.zoom > zoom_max:
-            self.zoom = zoom_max
-        if self.zoom < 1:
-            self.zoom = 1
-        print('zoom', self.zoom)
-        self.car_prog['zoom'] = self.zoom
-        self.line_prog['zoom'] = self.zoom
-        self.grid_prog['zoom'] = self.zoom
-
-    def adjust_pan(self, dx, dy):
-        x, y = self.pan
-        x += dx
-        y += dy
-        self.pan = x, y
-        print('pan', self.pan)
-        self.car_prog['pan'] = self.pan
-        self.line_prog['pan'] = self.pan
-        self.grid_prog['pan'] = self.pan
-
-    def set_resolution(self, w, h):
-        self.resolution = w, h
-        self.car_prog['resolution'] = w, h
-        self.line_prog['resolution'] = w, h
-        self.grid_prog['resolution'] = w, h
-        self.adjust_zoom(0)
 
 class Car:
     def __init__(self, group, color, pos):

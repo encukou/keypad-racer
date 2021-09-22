@@ -10,6 +10,7 @@ The game needs:
 * OpenGL 3.3+
 * `moderngl`, as an OpenGL abstraction
 * `pyglet`, for creating a window and handling events
+* `pypng`, for reading images
 
 Install these requirements using:
 
