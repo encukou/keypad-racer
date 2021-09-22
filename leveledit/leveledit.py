@@ -50,6 +50,7 @@ import math
 
 import pyglet
 import numpy
+from PIL import Image
 
 try:
     level_name = sys.argv[1]
@@ -60,6 +61,9 @@ except IndexError:
 circle = pyglet.image.load(Path(__file__).parent / 'circle.png')
 startcirc = pyglet.image.load(Path(__file__).parent / 'start.png')
 halfcirc = pyglet.image.load(Path(__file__).parent / 'half_circ.png')
+
+pyglet.image.Texture.default_min_filter = pyglet.gl.GL_NEAREST
+pyglet.image.Texture.default_mag_filter = pyglet.gl.GL_NEAREST
 
 window = pyglet.window.Window(
     width=1000,
@@ -136,12 +140,19 @@ def parse_svg_path(path):
             raise ValueError(f'Unknown SVG path part: {part}')
     return points
 
+def get_bb(points):
+    return tuple(
+        fun(points, key=operator.itemgetter(i))[i]
+        for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
+    )
+
 class EditorState:
     def __init__(self, level_name):
         self.input_path = Path(f'{level_name}.svg').resolve()
         self.aux_path = Path(f'{level_name}.json').resolve()
         self.output_path = Path(f'{level_name}.png').resolve()
         self.mouse_pos = window.width / 2, window.height / 2
+        self.tex = None
         self.zoom = 1
         self.changing = False
         self.view_center = 0, 0
@@ -211,14 +222,9 @@ class EditorState:
         if path is None:
             raise ValueError('Did not find a path with id=circuit')
         points = parse_svg_path(path)
-        def get_bb():
-            return tuple(
-                fun(points, key=operator.itemgetter(i))[i]
-                for fun, i in ((min, 0), (min, 1), (max, 0), (max, 1))
-            )
-        min_x, min_y, max_x, max_y = get_bb()
+        min_x, min_y, max_x, max_y = get_bb(points)
         points = [(x - min_x, y - min_y) for x, y in points]
-        self.bb = get_bb()
+        self.bb = get_bb(points)
         seg = Segment(self, *points[:4])
         self.segments = [seg]
         for points in zip(points[4::3], points[5::3], points[6::3]):
@@ -342,7 +348,45 @@ class EditorState:
                 await border.subdivide()
                 await Yield
             segment.done = True
+        await self.update_pixels()
         print('Task done')
+
+    async def update_pixels(self):
+        all_control_points = list(itertools.chain.from_iterable(
+            segment.get_all_control_points() for segment in self.segments
+        ))
+        xmin, ymin, xmax, ymax = get_bb(all_control_points)
+        floor = math.floor
+        ceil = math.ceil
+        xmin, ymin = floor(xmin), floor(ymin)
+        xmax, ymax = ceil(xmax), ceil(ymax)
+        width, height = xmax - xmin, ymax - ymin
+        data = numpy.zeros((width, height, 4))
+        def update_snapshot():
+            byt = (data*255).astype('u1').transpose((1, 0, 2)).tobytes('C')
+            img_data = pyglet.image.ImageData(
+                width, height,
+                format='RGBA',
+                data=byt,
+            )
+            tex = img_data.get_texture()
+            tex.anchor_x = -xmin
+            tex.anchor_y = -ymin
+            self.tex = tex
+            return byt
+        update_snapshot()
+
+        crossings = {'x': {}, 'y': {}}
+        for segment in self.segments:
+            for border in segment.borders:
+                for div in border.subdivisions:
+                    t, n, (x, y), c = div
+                    data[int(x)-xmin, int(y)-ymin] = (0, 1, 1, 1)
+
+        byt = update_snapshot()
+        img = Image.frombuffer('RGBA', (width, height), byt)
+        img.save(self.output_path)
+        print('Level saved')
 
     def draw(self):
         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -351,6 +395,10 @@ class EditorState:
         pyglet.gl.glTranslatef(window.width/2, window.height/2, 0)
         pyglet.gl.glScalef(self.zoom, self.zoom, 1)
         pyglet.gl.glTranslatef(-self.view_center[0], -self.view_center[1], 0)
+        # Texture
+        pyglet.gl.glColor4f(1, 1, 1, .2)
+        if self.tex:
+            self.tex.blit(0, 0)
         # Mouse
         pyglet.gl.glColor4f(0, 1, 0, 0.6)
         mouse_x, mouse_y = self.screen_to_model(*self.mouse_pos)
@@ -440,11 +488,11 @@ class EditorState:
                 pyglet.gl.glColor4f(1, 1, 1, .5)
                 pyglet.gl.glBegin(pyglet.gl.GL_LINES)
                 for t, n, pt, crossings in border.subdivisions:
-                    if 'x' in crossings:
+                    if 'y' in crossings:
                         p = [1/5, 0]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
-                    if 'y' in crossings:
+                    if 'x' in crossings:
                         p = [0, 1/5]
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
@@ -463,6 +511,13 @@ class EditorState:
                         pyglet.gl.glVertex2f(*pt - p)
                         pyglet.gl.glVertex2f(*pt + p)
                 pyglet.gl.glEnd()
+        # All control points
+        pyglet.gl.glColor4f(1, 1, 1, 1)
+        pyglet.gl.glBegin(pyglet.gl.GL_POINTS)
+        for segment in self.segments:
+            for point in segment.get_all_control_points():
+                pyglet.gl.glVertex2f(*point)
+        pyglet.gl.glEnd()
 
 def normalize(v):
     return v / numpy.linalg.norm(v)
@@ -521,6 +576,14 @@ class Segment:
                 self.end.vec - enorm,
             ),
         ]
+
+    def get_all_control_points(self):
+        yield self.start
+        yield from self.start.controls
+        yield from self.end.controls
+        yield self.end
+        for border in self.borders:
+            yield from border.points
 
 def _gen_halvings(a, b):
     if abs(a - b) < 0.1:
@@ -599,6 +662,8 @@ class Bezier:
                         exit()
                     self.subdivisions.append((mid_t, next(nums), pt, {crossing_name}))
                     return True
+            halved_something = False
+            for (t0, n0, p0, c0), (t1, n1, p1, c1) in zip(self.subdivisions, self.subdivisions[1:]):
                 if numpy.linalg.norm(p1 - p0) > EPSILON:
                     for halving in (0.5,):
                         mid_t = (1-halving) * t0 + halving * t1
@@ -611,7 +676,8 @@ class Bezier:
                         if distance > EPSILON2:
                             self.subdivisions.append((mid_t, next(nums), pt, {'c'}))
                             print('!', t0, t1, p1, p0)
-                            return True
+                            halved_something = True
+            return halved_something
         while do_subdiv():
             self.subdivisions.sort()
             await Yield
@@ -694,8 +760,6 @@ def on_key_press(key, mod):
     elif key == pyglet.window.key._1:
         state.set_first_segment()
         state.apply_change()
-
-pyglet.clock.schedule_interval(state.drive_task, 1/10)
 
 class EventLoop(pyglet.app.EventLoop):
     def idle(self):
