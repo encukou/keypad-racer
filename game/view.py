@@ -5,7 +5,7 @@ class View:
         self.programs = []
         self._resolution = 800, 600
         self._zoom = 10
-        self._pan = 0, 0
+        self._pan = 0, 5
 
     @property
     def resolution(self):
