@@ -1,11 +1,11 @@
 #version 330
 #include world_project.inc
-attribute float t;
 
-attribute vec2 point;
+in float t;
+in vec2 point;
 
-varying float v_thickness;
-varying float v_t;
+out float v_thickness;
+out float v_t;
 
 void main() {
     float alpha;

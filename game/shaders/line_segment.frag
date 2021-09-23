@@ -1,11 +1,9 @@
 #version 330
 
 uniform float antialias;
-varying vec4 g_color;
-varying float g_thickness;
-varying float g_distance;
-
-varying vec2 v_p0, v_p1, v_p;
+in vec4 g_color;
+in float g_thickness;
+in float g_distance;
 
 void main() {
     float d = abs(g_distance);

@@ -4,8 +4,8 @@ uniform float antialias;
 uniform float zoom;
 uniform vec4 viewport;
 
-varying vec4 v_color;
-varying vec2 v_uv;
+in vec4 v_color;
+in vec2 v_uv;
 
 // Isosceles Trapezoid - exact
 // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm

@@ -5,11 +5,10 @@ uniform vec3 color;
 uniform float zoom;
 uniform vec4 viewport;
 
-varying float g_t;
-varying float g_thickness;
-varying float g_distance;
-
-varying vec2 v_p0, v_p1, v_p;
+in float g_t;
+in float g_thickness;
+in float g_distance;
+in vec2 v_p0, v_p1, v_p;
 
 vec4 gradient_palette(vec3 color, float t) {
     if (t < 0.5) {

@@ -3,11 +3,11 @@
 uniform sampler2D intersections_tex;
 uniform ivec2 grid_origin;
 
-varying vec2 v_uv;
-varying float line_width;
-varying float antialias;
-varying vec2 v_screenuv;
-varying vec2 v_screenuv_norm;
+in vec2 v_uv;
+in float line_width;
+in float antialias;
+in vec2 v_screenuv;
+in vec2 v_screenuv_norm;
 
 float c(float tile_pos) {
     float dist = fract(tile_pos);

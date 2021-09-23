@@ -123,15 +123,23 @@ kbd.set_car(1, car2)
 kbd.set_car(2, car3)
 kbd.set_car(3, car4)
 
+from .keypad import Keypad
+
+keypads = [
+    Keypad(ctx, car1),
+    Keypad(ctx, car2),
+]
+
 @window.event
 def on_draw():
     fbo = ctx.screen
     fbo.use()
     ctx.scissor = (0, 0, window.width, window.height)
     ctx.clear(0.0, 0.0, 0.0, 0.0)
-    for view in views:
+    for view, keypad in zip(views, keypads):
         circ.draw(view)
         car_group.draw(view)
+        keypad.draw(view)
 
 def tick(dt):
     car2.orientation += dt

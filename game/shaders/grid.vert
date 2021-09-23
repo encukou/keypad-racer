@@ -3,13 +3,13 @@
 uniform vec4 projection_params;
 uniform vec4 viewport;
 uniform ivec2 grid_origin;
-attribute vec2 uv;
+in vec2 uv;
 
-varying vec2 v_uv;
-varying float line_width;
-varying float antialias;
-varying vec2 v_screenuv;
-varying vec2 v_screenuv_norm;
+out vec2 v_uv;
+out float line_width;
+out float antialias;
+out vec2 v_screenuv;
+out vec2 v_screenuv_norm;
 
 void main() {
     float wrot = projection_params.w;

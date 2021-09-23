@@ -13,8 +13,8 @@ def get_text(name):
 
 def get_shader(name):
     shader = ''.join(_shader_lines(PurePosixPath(name)))
-    print(f'--{name}--')
-    print(shader)
+    #print(f'--{name}--')
+    #print(shader)
     return shader
 
 INCLUDE_DIRECTIVE = '#include '

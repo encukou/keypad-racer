@@ -3,12 +3,12 @@
 
 uniform ivec2 grid_origin;
 
-attribute float thickness;
-attribute vec2 point;
-attribute vec4 color;
+in float thickness;
+in vec2 point;
+in vec4 color;
 
-varying float v_thickness;
-varying vec4 v_color;
+out float v_thickness;
+out vec4 v_color;
 
 void main() {
     float alpha;
