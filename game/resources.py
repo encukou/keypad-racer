@@ -1,3 +1,4 @@
+import os
 from pathlib import PurePosixPath
 try:
     import importlib_resources
@@ -12,9 +13,18 @@ def get_text(name):
     return resource.joinpath(name).read_text()
 
 def get_shader(name):
-    shader = ''.join(_shader_lines(PurePosixPath(name)))
+    path = PurePosixPath(name)
+    shader = ''.join(_shader_lines(path))
     #print(f'--{name}--')
     #print(shader)
+    if 'VALIDATE_SHADERS' in os.environ:
+        import subprocess
+        subprocess.run(
+            ['glslangValidator', '--stdin', '-S', path.suffix[1:]],
+            input=shader,
+            encoding='utf-8',
+            check=True,
+        )
     return shader
 
 INCLUDE_DIRECTIVE = '#include '

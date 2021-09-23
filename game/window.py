@@ -72,6 +72,8 @@ ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 from .view import View
 
 views = [View(ctx), View(ctx)]
+views[0].zoom = 3
+views[0].pan = 1, 1.5
 
 def view_for_point(x, y):
     for view in views:

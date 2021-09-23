@@ -25,7 +25,6 @@ class Circuit:
         self.rail_pieces = []
         with path.open('rb') as f:
             for chunk_type, content in png.Reader(file=f).chunks():
-                print(chunk_type, len(content))
                 if chunk_type == b'stRt':
                     start_x, start_y = struct.unpack('<ii', content)
                 if chunk_type == b'raIl':
