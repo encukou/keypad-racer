@@ -91,9 +91,10 @@ void main() {
          vec4(color, 1.0), 0.99);//XXX
         return;
     }
-    vec3 bordercolor = mix(color, vec3(1.0), 0.99);
+    vec3 bordercolor = mix(color, vec3(1.0), 0.9);
     if (sdf < 0) {
-        gl_FragColor = vec4(mix(color, bordercolor, sdf/(aa)), 0.1);
+        gl_FragColor = vec4(mix(color, bordercolor, 1+(sdf/aa)), 1.0);
+        return;
     }
     if (sdf < aa) {
         gl_FragColor = vec4(bordercolor, 1-(sdf/aa));

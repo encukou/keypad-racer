@@ -25,7 +25,7 @@ def check_gl_extensions():
             + 'It will not work correctly on your machine.'
         )
 
-class Window(pyglet.window.Window):
+class PygletWindow(pyglet.window.Window):
     def __init__(self):
         print(pyglet.gl.glext_arb)
         kwargs = {
@@ -55,128 +55,88 @@ class Window(pyglet.window.Window):
     def on_draw(self):
         pass
 
-window = Window()
-ctx = moderngl.create_context()
+class Window:
+    def __init__(self, kbd):
+        self.pyglet_window = wnd = PygletWindow()
+        self.scenes = []
 
-print("ModernGL:", moderngl.__version__)
-print("vendor:", ctx.info["GL_VENDOR"])
-print("renderer:", ctx.info["GL_RENDERER"])
-print("version:", ctx.info["GL_VERSION"])
-print("python:", sys.version)
-print("platform:", sys.platform)
-print("code:", ctx.version_code)
+        self.ctx = ctx = moderngl.create_context()
+        ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
+        ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
-ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
-ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
+        self.dragged_view = None
+        wnd.event(self.on_draw)
+        wnd.event(self.on_mouse_scroll)
+        wnd.event(self.on_mouse_press)
+        wnd.event(self.on_mouse_drag)
+        wnd.event(self.on_resize)
 
-from .view import View
+        kbd.attach_to_window(wnd)
 
-views = [View(ctx), View(ctx)]
-views[0].zoom = 3
-views[0].pan = 1, 1.5
+        self.views = []
 
-def view_for_point(x, y):
-    for view in views:
-        if view.hit_test(x, y):
-            return view
+    def debug_ctx(self):
+        print("ModernGL:", moderngl.__version__)
+        print("vendor:", self.ctx.info["GL_VENDOR"])
+        print("renderer:", self.ctx.info["GL_RENDERER"])
+        print("version:", self.ctx.info["GL_VERSION"])
+        print("python:", sys.version)
+        print("platform:", sys.platform)
+        print("version code:", self.ctx.version_code)
 
-from .circuit import Circuit
-
-circ = Circuit(ctx, 'okruh.png')
-
-from .car import CarGroup, Car
-from .palette import Palette
-pal = Palette()
-
-car_group = CarGroup(ctx, 9)
-car1 = Car(car_group, pal.player_color(0), (1, 0))
-car2 = Car(car_group, pal.player_color(1), (0, 0))
-car3 = Car(car_group, pal.player_color(2), (2, 0))
-car4 = Car(car_group, pal.player_color(3), (3, 4))
-car5 = Car(car_group, pal.player_color(4), (2, 3))
-car6 = Car(car_group, pal.player_color(5), (-2, -2))
-car7 = Car(car_group, pal.player_color(6), (-3, -2))
-car8 = Car(car_group, pal.player_color(7), (-4, -2))
-car9 = Car(car_group, pal.player_color(8), (-5, -2))
-for i in range(2):
-    car3.kbd(0, True)
-for i in range(3):
-    car3.kbd(8, True)
-for i in range(2):
-    car3.kbd(7, True)
-
-from .keyboard import Keyboard
-
-def global_key_event(car, action, is_pressed):
-    if action == 'fullscreen' and is_pressed:
-        if window.fullscreen:
-            window.set_fullscreen(False)
-        else:
-            disp = pyglet.canvas.get_display()
-            screen = random.choice(disp.get_screens())
-            window.set_fullscreen(True, screen=screen)
-
-kbd = Keyboard()
-kbd.attach_to_window(window)
-kbd.attach_handler(global_key_event)
-
-kbd.set_car(0, car1)
-kbd.set_car(1, car2)
-kbd.set_car(2, car3)
-kbd.set_car(3, car4)
-
-from .keypad import Keypad
-
-keypads = [
-    Keypad(ctx, car1),
-    Keypad(ctx, car2),
-]
-
-@window.event
-def on_draw():
-    fbo = ctx.screen
-    fbo.use()
-    ctx.scissor = (0, 0, window.width, window.height)
-    ctx.clear(0.0, 0.0, 0.0, 0.0)
-    for view, keypad in zip(views, keypads):
-        circ.draw(view)
-        car_group.draw(view)
-        keypad.draw(view)
-
-def tick(dt):
-    car2.orientation += dt
-pyglet.clock.schedule_interval(tick, 1/30)
-
-@window.event
-def on_mouse_scroll(x, y, scroll_x, scroll_y):
-    view = view_for_point(x, y)
-    if view:
-        view.adjust_zoom(scroll_y)
-
-current_view = None
-
-@window.event
-def on_mouse_press(x, y, button, mod):
-    global current_view
-    current_view = view_for_point(x, y)
-
-@window.event
-def on_mouse_drag(x, y, dx, dy, buttons, mod):
-    view = current_view or view_for_point(x, y)
-    if view:
-        view.adjust_pan(
-            -dx*view.zoom/window.width*4,
-            -dy*view.zoom/window.width*4,
+    def on_draw(self):
+        fbo = self.ctx.screen
+        fbo.use()
+        self.ctx.scissor = (
+            0, 0, self.pyglet_window.width, self.pyglet_window.height,
         )
+        self.ctx.clear(0.0, 0.0, 0.0, 0.0)
+        for view in self.views:
+            view.draw()
 
-@window.event
-def on_resize(w, h):
-    BORDER = max(w/100, h/100)
-    w, h = window.get_framebuffer_size()
-    views[0].viewport = 0, 0, w/2-BORDER/2, h
-    views[1].viewport = w/2+BORDER, 0, w/2-BORDER/2, h
+    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        view = self.view_for_point(x, y)
+        if view:
+            view.adjust_zoom(scroll_y)
 
-on_resize(window.width, window.height)
+    def on_mouse_press(self, x, y, button, mod):
+        self.dragged_view = self.view_for_point(x, y)
 
-def run():
-    pyglet.app.run()
+    def on_mouse_drag(self, x, y, dx, dy, buttons, mod):
+        view = self.dragged_view or self.view_for_point(x, y)
+        width = self.pyglet_window.width
+        if view:
+            view.adjust_pan(
+                -dx*view.zoom/width*4,
+                -dy*view.zoom/width*4,
+            )
+
+    def view_for_point(self, x, y):
+        for view in self.views:
+            if view.hit_test(x, y):
+                return view
+
+    def on_resize(self, w, h):
+        BORDER = max(w/100, h/100)
+        w, h = self.pyglet_window.get_framebuffer_size()
+        for view, viewport in zip(self.views, (
+            (0, 0, w/2-BORDER/2, h),
+            (w/2+BORDER, 0, w/2-BORDER/2, h),
+        )):
+            view.viewport = viewport
+
+    def add_view(self, view):
+        self.views.append(view)
+        self.on_resize(self.pyglet_window.width, self.pyglet_window.height)
+
+    @property
+    def fullscreen(self):
+        return self.pyglet_window.fullscreen
+    @fullscreen.setter
+    def fullscreen(self, new):
+        if new:
+            disp = pyglet.canvas.get_display()
+            screen = random.choice(disp.get_screens())  # XXX
+            self.pyglet_window.set_fullscreen(True, screen=screen)
+        else:
+            self.pyglet_window.set_fullscreen(False)

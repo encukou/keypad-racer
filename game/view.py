@@ -3,8 +3,9 @@ import collections
 Params = collections.namedtuple('Params', ('x', 'y', 'zoom', 'rot'))
 
 class View:
-    def __init__(self, ctx):
+    def __init__(self, ctx, scene):
         self.ctx = ctx
+        self.scene = scene
         self._viewport = 0, 0, 800, 600
         self._params = Params(0, 5, 10, 0)
 
@@ -57,3 +58,6 @@ class View:
         x2 = x1 + w
         y2 = y1 + h
         return x1 <= x <= x2 and y1 <= y <= y2
+
+    def draw(self):
+        self.scene.draw(self)

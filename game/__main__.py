@@ -1,3 +1,3 @@
-from . import window
+from . import game
 
-window.run()
+game.run()

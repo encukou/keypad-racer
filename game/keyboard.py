@@ -70,7 +70,7 @@ DEFAULT_MAP = {
 class Keyboard:
     def __init__(self):
         self.load_mapping(DEFAULT_MAP)
-        self.cars = {}
+        self.pads = {}
         self.global_handlers = []
 
     def attach_to_window(self, window):
@@ -118,11 +118,11 @@ class Keyboard:
             self.trigger_evt(action, False)
 
     def trigger_evt(self, evt, is_pressed):
-        car_i, act = evt
-        if car := self.cars.get(car_i):
-            car.kbd(act, is_pressed)
+        pad_i, act = evt
+        if pad := self.pads.get(pad_i):
+            pad.kbd(act, is_pressed)
         for handler in self.global_handlers:
-            handler(car_i, act, is_pressed)
+            handler(pad_i, act, is_pressed)
 
-    def set_car(self, index, car):
-        self.cars[index] = car
+    def set_pad(self, index, pad):
+        self.pads[index] = pad

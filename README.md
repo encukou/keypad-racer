@@ -70,6 +70,19 @@ The racetrack loops, so it is **neverending** ;)
 
 ## Licence & Credits
 
+TL;DR:
+
+* This Game: Petr Viktorin
+* Font:
+  * [Rubik] by Philipp Hubert, Sebastian Fischer, & al.
+  * Additional symbols from [M PLUS 1p] by Coji Morishita & M+ Fonts Project
+* MSDF font generator: [msdfgen] by Viktor Chlumský
+* Shader ideas and snippets:
+  * Nicolas P. Rougier
+  * Íñigo Quílez
+
+Long story:
+
 The code is available under this MIT licence:
 
 > Copyright © 2021 Petr Viktorin
@@ -79,6 +92,23 @@ The code is available under this MIT licence:
 > The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 >
 > THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The font used is [Rubik] by Philipp Hubert, Sebastian Fischer & other
+contributors.
+
+[Rubik]: https://github.com/mooniak/gemunu-libre-font/
+
+Additional symbols were taken from [M PLUS 1p] by Coji Morishita & M+
+Fonts Project.
+
+[M PLUS 1p]: https://fonts.google.com/specimen/M+PLUS+1p
+
+Both fonts are unter the OFL licence (included in the source only;
+font files aren't used in the game).
+
+The font was preprocessed with [msdfgen] by Viktor Chlumský.
+
+[msdfgen]: https://github.com/Chlumsky/msdfgen
 
 The game incorporates several techniques and code examples from
 Nicolas P. Rougier's book *Python & OpenGL for Scientific Visualization*,

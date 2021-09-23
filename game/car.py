@@ -24,8 +24,9 @@ ACTION_DIRECTIONS = {
 }
 
 class CarGroup:
-    def __init__(self, ctx, max_cars):
+    def __init__(self, ctx, circuit, max_cars=9):
         self.ctx = ctx
+        self.circuit = circuit
         self.max_cars = max_cars
         self.cars = []
 
@@ -80,6 +81,7 @@ class CarGroup:
         self.line_prog['antialias'] = 8
 
     def draw(self, view):
+        self.circuit.draw(view)
         view.setup(self.car_prog, self.line_prog)
         for car in self.cars:
             if car.dirty:
@@ -171,6 +173,6 @@ class Car:
             self._pos = new
         self.dirty |= 1
 
-    def kbd(self, action, is_pressed):
-        if is_pressed and (xy := ACTION_DIRECTIONS.get(action)):
+    def act(self, action):
+        if (xy := ACTION_DIRECTIONS.get(action)):
             self._move(*xy)
