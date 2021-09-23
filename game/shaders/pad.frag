@@ -44,6 +44,7 @@ void main() {
         SDF_box(v_uv, vec2(size - corner_r) * button_size)
         - corner_r * button_size;
     if (v_pad.z == 0) {
+    /*
         vec2 box = v_pad.xy;
         if (v_pad.x != 0 && v_pad.y != 0) {
             sdf = csg_union(
@@ -58,6 +59,7 @@ void main() {
                     v_uv - box*size*.76*button_size,
                     size*.6*button_size));
         }
+    */
     } else if (v_feature.z != 0) {
         float s = sqrt(2.0);
         float t = button_size*2;

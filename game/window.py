@@ -2,6 +2,7 @@ import platform
 import os
 import sys
 import random
+import types
 
 import pyglet
 import moderngl
@@ -27,7 +28,6 @@ def check_gl_extensions():
 
 class PygletWindow(pyglet.window.Window):
     def __init__(self):
-        print(pyglet.gl.glext_arb)
         kwargs = {
             'caption': 'Keypad Racer',
             'width': 800,
@@ -61,6 +61,7 @@ class Window:
         self.scenes = []
 
         self.ctx = ctx = moderngl.create_context()
+        ctx.extra = types.SimpleNamespace()
         ctx.blend_func = ctx.SRC_ALPHA, ctx.ONE_MINUS_SRC_ALPHA
         ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
@@ -140,3 +141,4 @@ class Window:
             self.pyglet_window.set_fullscreen(True, screen=screen)
         else:
             self.pyglet_window.set_fullscreen(False)
+        self.on_resize(self.pyglet_window.width, self.pyglet_window.height)

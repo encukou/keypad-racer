@@ -12,6 +12,9 @@ resource = importlib_resources.files(pkg_name)
 def get_text(name):
     return resource.joinpath(name).read_text()
 
+def open(name, *args, **kwargs):
+    return resource.joinpath(name).open(*args, **kwargs)
+
 def get_shader(name):
     path = PurePosixPath(name)
     shader = ''.join(_shader_lines(path))

@@ -7,7 +7,7 @@ class View:
         self.ctx = ctx
         self.scene = scene
         self._viewport = 0, 0, 800, 600
-        self._params = Params(0, 5, 10, 0)
+        self._params = Params(*scene.default_projection)
 
     @property
     def viewport(self):
@@ -38,6 +38,8 @@ class View:
         self._params = self._params._replace(x=x, y=y)
 
     def adjust_zoom(self, dz=0):
+        if self.scene.fixed_projection:
+            return
         self.zoom = self._params.zoom * 1.1**dz
 
     def adjust_pan(self, dx, dy):

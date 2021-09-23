@@ -69,7 +69,6 @@ class CarGroup:
                 255,
             ]) * self.max_cars,
         )
-        print(list(line_t.read()))
         self.line_vao = ctx.vertex_array(
             self.line_prog,
             [

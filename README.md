@@ -73,8 +73,8 @@ The racetrack loops, so it is **neverending** ;)
 TL;DR:
 
 * This Game: Petr Viktorin
-* Font:
-  * [Rubik] by Philipp Hubert, Sebastian Fischer, & al.
+* Fonts:
+  * [Gemunu Libre] by *mooniak*.
   * Additional symbols from [M PLUS 1p] by Coji Morishita & M+ Fonts Project
 * MSDF font generator: [msdfgen] by Viktor Chlumský
 * Shader ideas and snippets:
@@ -93,10 +93,9 @@ The code is available under this MIT licence:
 >
 > THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-The font used is [Rubik] by Philipp Hubert, Sebastian Fischer & other
-contributors.
+The font used is [Gemunu Libre] by *mooniak*.
 
-[Rubik]: https://github.com/mooniak/gemunu-libre-font/
+[Gemunu Libre]: https://github.com/mooniak/gemunu-libre-font/releases/tag/1.001
 
 Additional symbols were taken from [M PLUS 1p] by Coji Morishita & M+
 Fonts Project.
