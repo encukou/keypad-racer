@@ -3,7 +3,7 @@
 uniform float antialias;
 uniform vec3 color;
 uniform float zoom;
-uniform vec2 resolution;
+uniform vec4 viewport;
 
 varying float g_t;
 varying float g_thickness;
@@ -22,7 +22,7 @@ vec4 gradient_palette(vec3 color, float t) {
 void main() {
     float d = abs(g_distance);
     vec4 g_color = gradient_palette(color, g_t);
-    float aa = antialias / (resolution.x+resolution.y) * zoom;
+    float aa = antialias / (viewport.z+viewport.w) * zoom;
     float thickness = 0.5 - (1.0-g_t) / 4.0 - aa;
     gl_FragColor = g_color;
     gl_FragColor.r = d / 10;

@@ -9,7 +9,7 @@ varying float v_t;
 
 void main() {
     float alpha;
-    float thickness = resolution.y / projection_params.z * 0.89;
+    float thickness = viewport.w / projection_params.z * 0.89;
     if (thickness < 0.1) {
         alpha = thickness;
         v_thickness = 1.0;

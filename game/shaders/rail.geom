@@ -1,6 +1,6 @@
 #version 150 core
 
-uniform vec2 resolution;
+uniform vec4 viewport;
 uniform float antialias;
 
 in float v_thickness[];
@@ -21,10 +21,10 @@ vec2 get_offset(vec2 p0, vec2 p1, vec2 p2, float z) {
     vec2 direction = normalize(p2 - p1);
     vec2 dir_side = vec2(-direction.y, direction.x);
 
-    vec2 offset = dir_side / resolution;
+    vec2 offset = dir_side / viewport.zw;
     if (p0 != p1) {
-        vec2 t0 = normalize((p1 - p0)/resolution.yx);
-        vec2 t1 = normalize((p2 - p1)/resolution.yx);
+        vec2 t0 = normalize((p1 - p0)/viewport.wz);
+        vec2 t1 = normalize((p2 - p1)/viewport.wz);
         vec2 n0 = vec2(-t0.y, t0.x);
         vec2 n1 = vec2(-t1.y, t1.x);
         vec2 miter_direction = normalize(n0 + n1);
@@ -34,7 +34,7 @@ vec2 get_offset(vec2 p0, vec2 p1, vec2 p2, float z) {
             miter_direction = normalize(n0 - n1);
             dist = 1 / dot(miter_direction, n1);
         }
-        offset = miter_direction * dist / resolution;
+        offset = miter_direction * dist / viewport.zw;
     }
     return offset;
 }
@@ -61,7 +61,7 @@ void main()
     EmitVertex();
 
     half_quad_thickness = v_thickness[2]/2.0 + antialias;
-    offset = dir_side * half_quad_thickness / resolution;
+    offset = dir_side * half_quad_thickness / viewport.zw;
     offset = -get_offset(p3, p2, p1, -1);
     set_g_pervertex(2);
     g_distance = antialias;

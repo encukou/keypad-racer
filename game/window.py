@@ -46,6 +46,8 @@ class Window(pyglet.window.Window):
         check_gl_extensions()
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)
+        if 'GAME_DEVEL_ENVIRON2' in os.environ:
+            self.set_location(1000, 200)
 
     def on_resize(self, width, height):
         pass
@@ -69,18 +71,22 @@ ctx.enable_only(moderngl.BLEND | moderngl.PROGRAM_POINT_SIZE)
 
 from .view import View
 
-view = View(ctx)
-view.resolution = window.width, window.height
+views = [View(ctx), View(ctx)]
+
+def view_for_point(x, y):
+    for view in views:
+        if view.hit_test(x, y):
+            return view
 
 from .circuit import Circuit
 
-circ = Circuit(view, 'okruh.png')
+circ = Circuit(ctx, 'okruh.png')
 
 from .car import CarGroup, Car
 from .palette import Palette
 pal = Palette()
 
-car_group = CarGroup(view, 9)
+car_group = CarGroup(ctx, 9)
 car1 = Car(car_group, pal.player_color(0), (1, 0))
 car2 = Car(car_group, pal.player_color(1), (0, 0))
 car3 = Car(car_group, pal.player_color(2), (2, 0))
@@ -121,9 +127,11 @@ kbd.set_car(3, car4)
 def on_draw():
     fbo = ctx.screen
     fbo.use()
+    ctx.scissor = (0, 0, window.width, window.height)
     ctx.clear(0.0, 0.0, 0.0, 0.0)
-    circ.draw()
-    car_group.draw()
+    for view in views:
+        circ.draw(view)
+        car_group.draw(view)
 
 def tick(dt):
     car2.orientation += dt
@@ -131,18 +139,34 @@ pyglet.clock.schedule_interval(tick, 1/30)
 
 @window.event
 def on_mouse_scroll(x, y, scroll_x, scroll_y):
-    view.adjust_zoom(scroll_y)
+    view = view_for_point(x, y)
+    if view:
+        view.adjust_zoom(scroll_y)
+
+current_view = None
+
+@window.event
+def on_mouse_press(x, y, button, mod):
+    global current_view
+    current_view = view_for_point(x, y)
 
 @window.event
 def on_mouse_drag(x, y, dx, dy, buttons, mod):
-    view.adjust_pan(-dx*view.zoom/window.width*4, -dy*view.zoom/window.width*4)
+    view = current_view or view_for_point(x, y)
+    if view:
+        view.adjust_pan(
+            -dx*view.zoom/window.width*4,
+            -dy*view.zoom/window.width*4,
+        )
 
 @window.event
 def on_resize(w, h):
+    BORDER = max(w/100, h/100)
     w, h = window.get_framebuffer_size()
-    ctx.scissor = (0, 0, w, h)
-    ctx.viewport = (0, 0, w, h)
-    view.resolution = w, h
+    views[0].viewport = 0, 0, w/2-BORDER/2, h
+    views[1].viewport = w/2+BORDER, 0, w/2-BORDER/2, h
+
+on_resize(window.width, window.height)
 
 def run():
     pyglet.app.run()

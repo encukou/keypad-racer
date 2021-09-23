@@ -1,7 +1,7 @@
 #version 330
 
 uniform vec4 projection_params;
-uniform vec2 resolution;
+uniform vec4 viewport;
 uniform float antialias;
 
 vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
@@ -20,9 +20,9 @@ vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
     );
     float zoom = projection_params.z;
     vec2 zoomat = vec2(
-        1.0/zoom*resolution.y/resolution.x,
+        1.0/zoom*viewport.w/viewport.z,
         1.0/zoom
     );
     return rotw * ((uv * rot + pos - projection_params.xy) * zoomat
-        + (uv * antialias * rot / resolution));
+        + (uv * antialias * rot / viewport.zw));
 }

@@ -8,8 +8,8 @@ import png
 from . import resources
 
 class Circuit:
-    def __init__(self, view, path):
-        self.ctx = ctx = view.ctx
+    def __init__(self, ctx, path):
+        self.ctx = ctx
         path = Path(path).resolve()
         intersection_data = bytearray()
         with path.open('rb') as f:
@@ -49,38 +49,37 @@ class Circuit:
         ))
         uv_vbo = ctx.buffer(uv_vertices)
 
-        grid_prog = ctx.program(
+        self.grid_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/grid.vert'),
             fragment_shader=resources.get_shader('shaders/grid.frag'),
         )
-        grid_prog['intersections_tex'] = 0
-        grid_prog['grid_origin'] = start_x, start_y
+        self.grid_prog['intersections_tex'] = 0
+        self.grid_prog['grid_origin'] = start_x, start_y
         self.grid_vao = ctx.vertex_array(
-            grid_prog,
+            self.grid_prog,
             [
                 (uv_vbo, '2i1', 'uv'),
             ],
         )
 
         rail_vbo = ctx.buffer(rail_data)
-        rail_prog = ctx.program(
+        self.rail_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/rail.vert'),
             geometry_shader=resources.get_shader('shaders/rail.geom'),
             fragment_shader=resources.get_shader('shaders/rail.frag'),
         )
-        rail_prog['grid_origin'] = start_x, start_y
-        rail_prog['antialias'] = 2
+        self.rail_prog['grid_origin'] = start_x, start_y
+        self.rail_prog['antialias'] = 2
         self.rail_vao = ctx.vertex_array(
-            rail_prog,
+            self.rail_prog,
             [
                 (rail_vbo, '2f2', 'point'),
                 (ctx.buffer(b'\xff\xff\xff\x88\x00'), '4f1 u1 /i', 'color', 'thickness'),
             ],
         )
 
-        view.register_programs(grid_prog, rail_prog)
-
-    def draw(self):
+    def draw(self, view):
+        view.setup(self.grid_prog, self.rail_prog)
         self.intersection_tex.use(location=0)
         self.grid_vao.render(
             self.ctx.TRIANGLE_STRIP,

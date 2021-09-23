@@ -24,8 +24,8 @@ ACTION_DIRECTIONS = {
 }
 
 class CarGroup:
-    def __init__(self, view, max_cars):
-        self.ctx = ctx = view.ctx
+    def __init__(self, ctx, max_cars):
+        self.ctx = ctx
         self.max_cars = max_cars
         self.cars = []
 
@@ -79,9 +79,8 @@ class CarGroup:
         )
         self.line_prog['antialias'] = 8
 
-        view.register_programs(self.car_prog, self.line_prog)
-
-    def draw(self):
+    def draw(self, view):
+        view.setup(self.car_prog, self.line_prog)
         for car in self.cars:
             if car.dirty:
                 car.update_group()
