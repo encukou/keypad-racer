@@ -17,7 +17,7 @@ ctx = window.ctx
 circuit = Circuit(ctx, 'okruh.png')
 
 cars = CarGroup(ctx, circuit)
-for i in range(2):
+for i in range(1):
     car = Car(cars, pal.player_color(i), (i*8, 0))
     keypad = Keypad(ctx, car)
     kbd.set_pad(i, keypad)

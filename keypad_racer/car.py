@@ -167,9 +167,9 @@ class Car:
         return self._pos
     def _move(self, dx, dy):
         x, y = self.pos
-        vx, vy = self.velocity
-        vx += dx
-        vy += dy
+        vx, vy = self.velocity #= 0, 0
+        vx += dx #and int(dx / abs(dx))
+        vy += dy #and int(dy / abs(dy))
         self.velocity = vx, vy
         new = x + vx, y + vy
         if self._pos != new:
@@ -183,6 +183,7 @@ class Car:
             self._orientation = - math.atan2(vx, vy)
             self._pos = new
         self.dirty |= 1
+        #vx, vy = self.velocity = vx*2, vy*2
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
@@ -216,33 +217,39 @@ class Car:
         dest_y = sy + vy + y
         print(end=' '*15)
         xrange = abs(sx - dest_x)
-        for t in range(xrange + 1):
-            t /= xrange
-            x = (1-t) * sx + t * dest_x
-            y = (1-t) * sy + t * dest_y
-            ok = circuit.y_intersection_passable(round(x), y);
-            if not ok:
-                crash_ts.append(t)
-                break
-            print(f'{int(x):2}:{y:8.2f} {" ."[ok]}| ', end='')
-        print()
-
-        yrange = abs(sy - dest_y)
-        for t in range(yrange + 1):
-            t /= yrange
-            x = (1-t) * sx + t * dest_x
-            y = (1-t) * sy + t * dest_y
-            ok = circuit.x_intersection_passable(x, round(y))
-            print(f'{x:6.2f}:{int(y):4} {" ."[ok]}| ', end='')
-
-            y = round(y)
-            for x in reversed(_all(sx, dest_x)):
-                print(f'{x} {y} {circuit.is_on_track(x,y):4}', end=' | ')
+        if xrange:
+            for t in range(xrange + 1):
+                t /= xrange
+                x = (1-t) * sx + t * dest_x
+                y = (1-t) * sy + t * dest_y
+                ok = circuit.y_intersection_passable(round(x), y);
+                if not ok:
+                    crash_ts.append(t)
+                    break
+                print(f'{int(x):2}:{y:8.2f} {ok!s:2}| ', end='')
             print()
 
-            if not ok:
-                crash_ts.append(t)
-                break
+        yrange = abs(sy - dest_y)
+        if yrange:
+            for t in range(yrange + 1):
+                t /= yrange
+                x = (1-t) * sx + t * dest_x
+                y = (1-t) * sy + t * dest_y
+                ok = circuit.x_intersection_passable(x, round(y))
+                print(f'{x:6.2f}:{int(y):4} {ok!s:2}| ', end='')
+
+                y = round(y)
+                for x in reversed(_all(sx, dest_x)):
+                    print(f'{x} {y} {circuit.is_on_track(x,y):4}', end=' | ')
+                print()
+
+                if not ok:
+                    crash_ts.append(t)
+                    break
+        if not circuit.is_on_track(dest_x, dest_y):
+            crash_ts.append(1)
+        print(crash_ts)
+
         if crash_ts:
             t = min(crash_ts)
             x = (1-t) * sx + t * dest_x

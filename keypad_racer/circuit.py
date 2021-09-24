@@ -77,7 +77,7 @@ class Circuit:
             self.rail_prog,
             [
                 (rail_vbo, '2f2', 'point'),
-                (ctx.buffer(b'\xff\xff\xff\x88\x00'), '4f1 u1 /i', 'color', 'thickness'),
+                (ctx.buffer(b'\xff\xff\xff\x38\x00'), '4f1 u1 /i', 'color', 'thickness'),
             ],
         )
         self.start_x = start_x
@@ -98,7 +98,7 @@ class Circuit:
 
     def get_pixel(self, x, y):
         x += self.start_x
-        y += self.start_y - 1
+        y += self.start_y
         if 0 <= x < self.width and 0 <= y < self.height:
             idx = x*4 + y*4*self.width
             return self.intersection_data[idx:idx + 4]
@@ -110,17 +110,16 @@ class Circuit:
     def y_intersection_passable(self, x, y):
         y0 = math.floor(y)
         rem = y - y0
-        if rem < self.get_pixel(x, y0)[1]:
-            return True
-        if 1-rem < self.get_pixel(x, y0+1)[3]:
-            return True
+        return (
+            rem < self.get_pixel(x, y0)[3]/255
+            or 1-rem < self.get_pixel(x, y0+1)[1]/255
+        )
         return False
 
     def x_intersection_passable(self, x, y):
         x0 = math.floor(x)
         rem = x - x0
-        if rem < self.get_pixel(x0, y)[0]:
-            return True
-        if 1-rem < self.get_pixel(x0+1, y)[2]:
-            return True
-        return False
+        return (
+            rem < self.get_pixel(x0, y)[2]/255
+            or 1-rem < self.get_pixel(x0+1, y)[0]/255
+        )

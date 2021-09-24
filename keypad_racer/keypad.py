@@ -55,7 +55,7 @@ class Keypad:
 
         import struct
         print(self.car.velocity)
-        self.helper_vbo = ctx.buffer(self._helper_ba())
+        self.helper_vbo = ctx.buffer(self._helper_ba(), dynamic=True)
         self.helper_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/rail.vert'),
             geometry_shader=resources.get_shader('shaders/rail.geom'),
@@ -89,6 +89,7 @@ class Keypad:
         return ba
 
     def draw(self, view):
+        self.helper_vbo.write(self._helper_ba())
         view.setup(self.pad_prog)
         x, y = self.car.pos
         xx, yy = self.car.velocity
@@ -97,6 +98,11 @@ class Keypad:
         self.pad_prog['skip'] = SKIPS.get((-xx, -yy), -1)
         # import math; import time; self.pad_prog['button_size'] = abs(math.sin(time.time()*1))
         self.pad_prog['button_size'] = 1
+        self.pad_prog['m_blocked'] = tuple((
+            *(bool(self.car.blocker_on_path_to(x, y))
+              for x in (-1, 0, 1) for y in (-1, 0, 1)),
+            0, 0, 0,
+        ))
         self.vao.render(
             self.ctx.TRIANGLES,
             vertices=6*9,

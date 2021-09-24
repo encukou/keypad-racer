@@ -3,6 +3,7 @@
 
 uniform vec3 color;
 uniform float button_size;
+uniform mat4x3 m_blocked;
 
 in vec2 v_uv;
 flat in vec4 v_feature;
@@ -84,20 +85,22 @@ void main() {
                 csg_exclusion(v_uv.x+v_uv.y, v_uv.x-v_uv.y)-(1-t)*4/5)));
     }
     */
+    vec3 btncolor = color;
+    if (m_blocked[v_pad.x+1][v_pad.y+1] > 0.5) btncolor = vec3(0.4);
     float aa = gridlines_per_px() * 4;
     if (sdf < -aa) {
         gl_FragColor = vec4(size, v_decal.x, length(v_uv), 0.5);
         gl_FragColor = mix(vec4(size, v_decal.x, length(v_uv), 0.5),
-         vec4(color, 1.0), 0.99);//XXX
+         vec4(btncolor, 1.0), 0.99);//XXX
         return;
     }
-    vec3 bordercolor = mix(color, vec3(1.0),
+    vec3 bordercolor = mix(btncolor, vec3(1.0),
         mix(
             length(v_pad.xy + v_uv)/3.5,
             1.0,
             smoothstep(0, 20, 1/gridlines_per_px())));
     if (sdf < 0) {
-        gl_FragColor = vec4(mix(color, bordercolor, 1+(sdf/aa)), 1.0);
+        gl_FragColor = vec4(mix(btncolor, bordercolor, 1+(sdf/aa)), 1.0);
         return;
     }
     if (sdf < aa) {
