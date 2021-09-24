@@ -120,6 +120,7 @@ class Car:
         self.velocity = 0, 1
         self.dirty = True
         self.anim_t = ConstantValue(0)
+        self.view_rect = self.get_view_rect()
 
     def update_group(self):
         if not self.dirty:
@@ -152,6 +153,7 @@ class Car:
     def pos(self):
         return self._pos
     def _move(self, dx, dy):
+        duration = 0.5
         self.last_orientation = self._orientation
         x, y = self.last_pos = self.pos
         vx, vy = self.velocity #= 0, 0
@@ -159,31 +161,33 @@ class Car:
         vy += dy
         self.velocity = vx, vy
         new = x + vx, y + vy
+        buf = struct.pack(LINE_FORMAT, *new)
+        self.history = [
+            self.history[2],
+            *self.history[2:-1],
+            buf,
+            buf,
+        ]
         if self._pos != new:
-            buf = struct.pack(LINE_FORMAT, *new)
-            self.history = [
-                self.history[2],
-                *self.history[2:-1],
-                buf,
-                buf,
-            ]
             self.last_orientation %= math.tau
             orient = -math.atan2(vx, vy)
             orientations = [orient - math.tau, orient, orient + math.tau]
-            print(orientations, self.last_orientation)
             self._orientation = min(
                 orientations,
                 key=lambda o: abs(o - self.last_orientation),
             )
             self._pos = new
+        else:
+            duration /= 2
         self.dirty = True
-        self.anim_t = AnimatedValue(ConstantValue(0), 1, 1)
+        self.anim_t = AnimatedValue(ConstantValue(0), 1, duration)
+        self.view_rect = self.get_view_rect()
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
             self._move(*xy)
 
-    def get_view_rects(self):
+    def get_view_rect(self):
         x, y = self.pos
         x1, y1 = self.pos
         x2, y2 = self.pos
@@ -193,14 +197,12 @@ class Car:
             x1 += dx
         for dy2 in range(abs(dy)):
             y1 += dy
-        need = [
+        return (
             min(x, x1, x + dx, x - dx) - 5,
             min(y, y1, y + dy, y - dy) - 5,
             max(x, x1, x + dx, x - dx) + 5,
             max(y, y1, y + dy, y - dy) + 5,
-        ]
-        # XXX: Should
-        return [need]
+        )
 
     def blocker_on_path_to(self, x, y):
         crash_ts = []

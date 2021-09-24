@@ -11,7 +11,7 @@ class CarScene(Scene):
         self.keypad = keypad
 
     def draw(self, view):
-        view.set_view_rects(*self.car.get_view_rects())
+        view.set_view_rect(self.car.view_rect)
         self.car.group.draw(view)
         self.keypad.draw(view)
 

@@ -1,4 +1,7 @@
 import collections
+import math
+
+from .anim import AnimatedValue, ConstantValue
 
 Params = collections.namedtuple('Params', ('x', 'y', 'scale_x', 'scale_y'))
 
@@ -23,14 +26,24 @@ def visible_rect_to_scene(rect, viewport):
         scale_y = scale * viewport[3]
     return Params(pan_x, pan_y, scale_x, scale_y), scale
 
+def cubic_inout(t):
+    if t < 0.5:
+        return 4 * t ** 3
+    p = 2 * t - 2
+    return 0.5 * p ** 3 + 1
+
+def sine_inout(t):
+    return 0.5 * (1 - math.cos(t * math.pi))
+
 class View:
     def __init__(self, ctx, scene):
         self.ctx = ctx
         self.scene = scene
-        self._viewport = 0, 0, 800, 600
-        self._params = Params(*scene.default_projection)
-        self.zoom = 1
-        self.pan = 0, 0
+        self._viewport = tuple(ConstantValue(x) for x in (0, 0, 800, 600))
+        self._params = Params(*(ConstantValue(p) for p in scene.default_projection))
+        self.zoom = ConstantValue(1)
+        self.pan = ConstantValue(0), ConstantValue(0)
+        self.last_view_rect = None
 
     @property
     def viewport(self):
@@ -38,16 +51,24 @@ class View:
     @viewport.setter
     def viewport(self, res):
         self._viewport = res
+        self.last_view_rect = None
         self.adjust_scale()
 
-    def set_view_rects(self, should, need=None):
-        r, z = visible_rect_to_scene(should, self.viewport)
-        self._params = Params(
-            r.x + self.pan[0],
-            r.y + self.pan[1],
-            r.scale_x*self.zoom,
-            r.scale_y*self.zoom,
-        )
+    def set_view_rect(self, view_rect, duration=None):
+        if view_rect != self.last_view_rect:
+            if duration is None:
+                duration = 0.75
+                if self.last_view_rect is None:
+                    duration = 0
+            self.last_view_rect = view_rect
+            r, z = visible_rect_to_scene(view_rect, self.viewport)
+            sp = self._params
+            self._params = Params(
+                AnimatedValue(sp[0], r.x + self.pan[0].end, duration, sine_inout),
+                AnimatedValue(sp[1], r.y + self.pan[1].end, duration, sine_inout),
+                AnimatedValue(sp[2], r.scale_x*self.zoom.end, duration, sine_inout),
+                AnimatedValue(sp[3], r.scale_y*self.zoom.end, duration, sine_inout),
+            )
 
     @property
     def scale(self):
@@ -62,14 +83,18 @@ class View:
         self._params = self._params._replace(scale_x=scale, scale_y=scale)
 
     def adjust_zoom(self, dz=0):
-        self.zoom = self.zoom * 1.1**dz
+        self.zoom = AnimatedValue(self.zoom, self.zoom.end * 1.1**dz, 0.1)
+
     def adjust_scale(self, dz=0):
         if self.scene.fixed_projection:
             return
-        self.zoom = self.zoom * 1.1**dz
+        self.zoom = AnimatedValue(self.zoom, self.zoom.end * 1.1**dz, 0.2)
 
     def adjust_pan(self, dx, dy):
-        self.pan = self.pan[0] + dx, self.pan[1] + dy
+        self.pan = (
+            AnimatedValue(self.pan[0], self.pan[0].end + dx, 0.2),
+            AnimatedValue(self.pan[1], self.pan[1].end + dy, 0.2),
+        )
 
     def setup(self, *programs):
         self.ctx.scissor = tuple(self._viewport)
