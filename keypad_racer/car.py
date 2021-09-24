@@ -66,15 +66,14 @@ class CarGroup:
         line_t = ctx.buffer(
             bytes([
                 0,
-                *(int(255*t/(HISTORY_SIZE-1)) for t in range(HISTORY_SIZE)),
-                255,
+                *range(HISTORY_SIZE+1),
             ]) * self.max_cars,
         )
         self.line_vao = ctx.vertex_array(
             self.line_prog,
             [
                 (self.line_vbo, '2i2', 'point'),
-                (line_t, 'f1', 't'),
+                (line_t, 'i1', 't'),
             ],
             skip_errors=True,
         )
@@ -90,7 +89,7 @@ class CarGroup:
         self.t_vbo.write(ts)
         if self.cars:
             for i, car in enumerate(self.cars):
-                self.line_prog['color'] = car.color
+                self.line_prog['color'] = (*car.color, car.anim_t)
                 self.line_vao.render(
                     self.ctx.LINE_STRIP_ADJACENCY,
                     first=i*(HISTORY_SIZE+2),

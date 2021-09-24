@@ -1,13 +1,15 @@
 #version 330
 #include world_project.inc
 
-uniform vec3 color;
+uniform vec4 color;
 
 in float g_t;
 in float g_thickness;
 in float g_distance;
 
 vec4 gradient_palette(vec3 color, float t) {
+    if (t > 1.0) discard;
+    if (t < 0.0) discard;
     if (t < 0.5) {
         return vec4(color, t * 1.5);
     }
@@ -17,7 +19,7 @@ vec4 gradient_palette(vec3 color, float t) {
 
 void main() {
     float d = abs(g_distance);
-    vec4 g_color = gradient_palette(color, g_t);
+    vec4 g_color = gradient_palette(color.xyz, (g_t+1-color.w-d/5)/5);
     float thickness = g_thickness;
     gl_FragColor = g_color;
     gl_FragColor.r = d / 10;

@@ -20,7 +20,7 @@ class AnimatedValue:
         return (1-t) * start + t * self.end
 
     def __repr__(self):
-        return f'<{self.start}→{self.end}>'
+        return f'<{self.start}→{self.end}:{float(self)}>'
 
 class ConstantValue:
     def __init__(self, val):
