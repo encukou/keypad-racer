@@ -53,8 +53,9 @@ class Keypad:
         )
         self.pad_prog['color'] = self.car.color
 
+
+        """
         import struct
-        print(self.car.velocity)
         self.helper_vbo = ctx.buffer(self._helper_ba(), dynamic=True)
         self.helper_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/rail.vert'),
@@ -69,6 +70,7 @@ class Keypad:
             ],
         )
         self.helper_prog['grid_origin'] = 0, 0
+        """
 
     def _helper_ba(self):
         ba = bytearray()
@@ -89,7 +91,6 @@ class Keypad:
         return ba
 
     def draw(self, view):
-        self.helper_vbo.write(self._helper_ba())
         view.setup(self.pad_prog)
         x, y = self.car.pos
         xx, yy = self.car.velocity
@@ -108,11 +109,14 @@ class Keypad:
             vertices=6*9,
         )
 
+        """
         view.setup(self.helper_prog)
+        self.helper_vbo.write(self._helper_ba())
         self.helper_prog['grid_origin'] = -x, -y
         self.helper_vao.render(
             self.ctx.LINE_STRIP_ADJACENCY,
         )
+        """
 
     def kbd(self, direction, is_pressed):
         if is_pressed:

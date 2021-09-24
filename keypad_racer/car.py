@@ -113,20 +113,6 @@ class Car:
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
         self.velocity = 0, 1
         self.dirty = 2      # bitfield: 1=position/orientation; 2=color
-        self._pos = self._pos[0] + 68+5*1, -207-5*6
-        self.velocity = 0, 5
-        self._move(0, 0)
-        self._move(0, 0)
-        self._move(0, 0)
-        self._move(0, 0)
-        self._move(0, 0)
-        self.velocity = -4, 5
-        self._move(0, 0)
-        if self.index == 0:
-            for x in -1,0,1:
-                for y in 1,0,-1:
-                    print(self.pos, x, y)
-                    print('Blocked at', self.blocker_on_path_to(x, y))
 
     def update_group(self):
         if not self.dirty:
@@ -215,7 +201,6 @@ class Car:
         vx, vy = self.velocity
         dest_x = sx + vx + x
         dest_y = sy + vy + y
-        print(end=' '*15)
         xrange = abs(sx - dest_x)
         if xrange:
             for t in range(xrange + 1):
@@ -226,8 +211,6 @@ class Car:
                 if not ok:
                     crash_ts.append(t)
                     break
-                print(f'{int(x):2}:{y:8.2f} {ok!s:2}| ', end='')
-            print()
 
         yrange = abs(sy - dest_y)
         if yrange:
@@ -236,19 +219,11 @@ class Car:
                 x = (1-t) * sx + t * dest_x
                 y = (1-t) * sy + t * dest_y
                 ok = circuit.x_intersection_passable(x, round(y))
-                print(f'{x:6.2f}:{int(y):4} {ok!s:2}| ', end='')
-
-                y = round(y)
-                for x in reversed(_all(sx, dest_x)):
-                    print(f'{x} {y} {circuit.is_on_track(x,y):4}', end=' | ')
-                print()
-
                 if not ok:
                     crash_ts.append(t)
                     break
         if not circuit.is_on_track(dest_x, dest_y):
             crash_ts.append(1)
-        print(crash_ts)
 
         if crash_ts:
             t = min(crash_ts)
