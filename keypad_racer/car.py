@@ -2,10 +2,10 @@ import struct
 import math
 
 from . import resources
+from .anim import AnimatedValue, ConstantValue
 
-BASIC_FORMAT = '=2f1f'
-FULL_FORMAT = BASIC_FORMAT + '3f'
-STRIDE = struct.calcsize(FULL_FORMAT)
+CAR_FORMAT = '=4h2e3e'
+STRIDE = struct.calcsize(CAR_FORMAT)
 
 HISTORY_SIZE = 6
 LINE_FORMAT = '=2h'
@@ -44,11 +44,13 @@ class CarGroup:
         )
 
         self.cars_vbo = ctx.buffer(bytes(STRIDE * max_cars), dynamic=True)
+        self.t_vbo = ctx.buffer(bytes(max_cars), dynamic=True)
         self.vao = ctx.vertex_array(
             self.car_prog,
             [
                 (uv_vbo, '2i1', 'uv'),
-                (self.cars_vbo, '2f4 f4 3f4 /i', 'pos', 'orientation', 'color'),
+                (self.cars_vbo, '4i2 2f2 3f2 /i', 'pos', 'orientation', 'color'),
+                (self.t_vbo, '1f1 /i', 'pos_t'),
             ],
         )
 
@@ -80,9 +82,12 @@ class CarGroup:
     def draw(self, view):
         self.circuit.draw(view)
         view.setup(self.car_prog, self.line_prog)
+        ts = bytearray()
         for car in self.cars:
             if car.dirty:
                 car.update_group()
+            ts.append(round(float(car.anim_t)*255))
+        self.t_vbo.write(ts)
         if self.cars:
             for i, car in enumerate(self.cars):
                 self.line_prog['color'] = car.color
@@ -109,26 +114,22 @@ class Car:
         self.index = group.add_car(self)
         self._color = color
         self._orientation = 0
+        self.last_orientation = 0
         self._pos = pos
+        self.last_pos = pos
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
         self.velocity = 0, 1
-        self.dirty = 2      # bitfield: 1=position/orientation; 2=color
+        self.dirty = True
+        self.anim_t = ConstantValue(0)
 
     def update_group(self):
         if not self.dirty:
             return
-        elif self.dirty == 1:
-            data = struct.pack(
-                BASIC_FORMAT,
-                *self.pos, self.orientation,
-            )
-            self.group.cars_vbo.write(data, offset = STRIDE*self.index)
-        elif self.dirty:
-            data = struct.pack(
-                FULL_FORMAT,
-                *self.pos, self.orientation, *self.color,
-            )
-            self.group.cars_vbo.write(data, offset = STRIDE*self.index)
+        data = struct.pack(
+            CAR_FORMAT,
+            *self._pos, *self.last_pos, self.orientation, self.last_orientation, *self.color,
+        )
+        self.group.cars_vbo.write(data, offset = STRIDE*self.index)
         data = b''.join(self.history)
         self.group.line_vbo.write(data, offset=LINE_STRIDE*(HISTORY_SIZE+2)*self.index)
 
@@ -138,7 +139,7 @@ class Car:
     @color.setter
     def color(self, new):
         self._color = new
-        self.dirty |= 2
+        self.dirty = True
 
     @property
     def orientation(self):
@@ -146,16 +147,17 @@ class Car:
     @orientation.setter
     def orientation(self, new):
         self._orientation = new
-        self.dirty |= 1
+        self.dirty = True
 
     @property
     def pos(self):
         return self._pos
     def _move(self, dx, dy):
-        x, y = self.pos
+        self.last_orientation = self._orientation
+        x, y = self.last_pos = self.pos
         vx, vy = self.velocity #= 0, 0
-        vx += dx #and int(dx / abs(dx))
-        vy += dy #and int(dy / abs(dy))
+        vx += dx
+        vy += dy
         self.velocity = vx, vy
         new = x + vx, y + vy
         if self._pos != new:
@@ -166,10 +168,17 @@ class Car:
                 buf,
                 buf,
             ]
-            self._orientation = - math.atan2(vx, vy)
+            self.last_orientation %= math.tau
+            orient = -math.atan2(vx, vy)
+            orientations = [orient - math.tau, orient, orient + math.tau]
+            print(orientations, self.last_orientation)
+            self._orientation = min(
+                orientations,
+                key=lambda o: abs(o - self.last_orientation),
+            )
             self._pos = new
-        self.dirty |= 1
-        #vx, vy = self.velocity = vx*2, vy*2
+        self.dirty = True
+        self.anim_t = AnimatedValue(ConstantValue(0), 1, 1)
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):

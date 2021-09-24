@@ -47,7 +47,7 @@ class PygletWindow(pyglet.window.Window):
         if 'GAME_DEVEL_ENVIRON' in os.environ:
             self.set_location(200, 800)
         if 'GAME_DEVEL_ENVIRON2' in os.environ:
-            self.set_location(1000, 200)
+            self.set_location(1100, 200)
 
     def on_resize(self, width, height):
         pass

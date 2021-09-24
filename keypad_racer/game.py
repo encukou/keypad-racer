@@ -36,4 +36,5 @@ def global_key_event(car, action, is_pressed):
 kbd.attach_handler(global_key_event)
 
 def run():
+    pyglet.clock.schedule_interval(id, 1/30)
     pyglet.app.run()
