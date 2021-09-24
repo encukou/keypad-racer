@@ -1,5 +1,6 @@
 
 from . import resources
+from .anim import AnimatedValue, ConstantValue, autoschedule, Wait
 
 def pack_f1(f):
     return int(f * 255)
@@ -20,6 +21,9 @@ class Keypad:
     def __init__(self, ctx, car):
         self.ctx = ctx
         self.car = car
+        car.keypad = self
+
+        self.button_size = ConstantValue(1)
 
         # feature: size, corner radius, handle, brake stuff
         pad_args = pack_f1(.65), pack_f1(2/3), 0, 0
@@ -53,6 +57,8 @@ class Keypad:
         )
         self.pad_prog['color'] = self.car.color
 
+        self.update()
+        self.enabled = True
 
         """
         import struct
@@ -71,7 +77,6 @@ class Keypad:
         )
         self.helper_prog['grid_origin'] = 0, 0
         """
-
     def _helper_ba(self):
         ba = bytearray()
         dx, dy = self.car.velocity
@@ -92,18 +97,12 @@ class Keypad:
 
     def draw(self, view):
         view.setup(self.pad_prog)
-        x, y = self.car.pos
-        xx, yy = self.car.velocity
-        self.pad_prog['pos'] = x+xx, y+yy
+        self.pad_prog['pos'] = self.pos
         self.pad_prog['top_pos'] = 0, 0, 0
-        self.pad_prog['skip'] = SKIPS.get((-xx, -yy), -1)
+        self.pad_prog['skip'] = self.skips
         # import math; import time; self.pad_prog['button_size'] = abs(math.sin(time.time()*1))
-        self.pad_prog['button_size'] = 1
-        self.pad_prog['m_blocked'] = tuple((
-            *(bool(self.car.blocker_on_path_to(x, y))
-              for x in (-1, 0, 1) for y in (-1, 0, 1)),
-            0, 0, 0,
-        ))
+        self.pad_prog['button_size'] = self.button_size
+        self.pad_prog['m_blocked'] = self.blocked
         self.vao.render(
             self.ctx.TRIANGLES,
             vertices=6*9,
@@ -119,5 +118,26 @@ class Keypad:
         """
 
     def kbd(self, direction, is_pressed):
-        if is_pressed:
+        if is_pressed and self.enabled:
             self.car.act(direction)
+
+    @autoschedule
+    async def pause(self, duration):
+        self.button_size = AnimatedValue(self.button_size, -1, .2)
+        self.enabled = False
+        await Wait(duration)
+        self.button_size = ConstantValue(0)
+        self.enabled = True
+        self.update()
+        self.button_size = AnimatedValue(self.button_size, 1, .1)
+
+    def update(self):
+        x, y = self.car.pos
+        xx, yy = self.car.velocity
+        self.pos = x+xx, y+yy
+        self.skips = SKIPS.get((-xx, -yy), -1)
+        self.blocked = tuple((
+            *(bool(self.car.blocker_on_path_to(x, y))
+              for x in (-1, 0, 1) for y in (-1, 0, 1)),
+            0, 0, 0,
+        ))

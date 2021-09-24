@@ -1,4 +1,7 @@
 import time
+import functools
+
+import pyglet
 
 class AnimatedValue:
     def __new__(cls, start, end, duration, *w, **ka):
@@ -31,6 +34,12 @@ class AnimatedValue:
     def __repr__(self):
         return f'<{self.start}→{self.end}:{float(self)}>'
 
+    def __aiter__(self):
+        time_to_wait = self.clock() - self.begin + self.duration
+        if time_to_wait > 1:
+            return iter([time_to_wait])
+        return iter(())
+
 class ConstantValue:
     def __init__(self, end):
         self.end = float(end)
@@ -40,3 +49,31 @@ class ConstantValue:
 
     def __repr__(self):
         return f'<{self.end}>'
+
+    def __aiter__(self):
+        return iter(())
+
+def drive(it, dt):
+    try:
+        time_to_wait = next(it)
+    except StopIteration:
+        return
+    time_to_wait = float(time_to_wait)
+    pyglet.clock.schedule_once(functools.partial(drive, it), time_to_wait)
+
+def autoschedule(coro):
+    @functools.wraps(coro)
+    def func(*args, **kwargs):
+        it = coro(*args, **kwargs).__await__()
+        drive(it, 0)
+    return func
+
+class Wait:
+    def __init__(self, time_to_wait):
+        self.time_to_wait = time_to_wait
+
+    def __aiter__(self):
+        return iter([time_to_wait])
+
+    def __await__(self):
+        yield self.time_to_wait

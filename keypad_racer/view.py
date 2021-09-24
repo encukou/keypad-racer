@@ -64,10 +64,15 @@ class View:
             r, z = visible_rect_to_scene(view_rect, self.viewport)
             sp = self._params
             self._params = Params(
-                AnimatedValue(sp[0], r.x + self.pan[0].end, duration, sine_inout),
-                AnimatedValue(sp[1], r.y + self.pan[1].end, duration, sine_inout),
-                AnimatedValue(sp[2], r.scale_x*self.zoom.end, duration, sine_inout),
-                AnimatedValue(sp[3], r.scale_y*self.zoom.end, duration, sine_inout),
+                AnimatedValue(sp[0], r.x, duration, sine_inout),
+                AnimatedValue(sp[1], r.y, duration, sine_inout),
+                AnimatedValue(sp[2], r.scale_x, duration, sine_inout),
+                AnimatedValue(sp[3], r.scale_y, duration, sine_inout),
+            )
+            self.zoom = AnimatedValue(self.zoom, 1/3+self.zoom.end*2/3, duration*2, sine_inout)
+            self.pan = (
+                AnimatedValue(self.pan[0], self.pan[0].end*2/3, duration, sine_inout),
+                AnimatedValue(self.pan[1], self.pan[1].end*2/3, duration, sine_inout),
             )
 
     @property
@@ -99,9 +104,15 @@ class View:
     def setup(self, *programs):
         self.ctx.scissor = tuple(self._viewport)
         self.ctx.viewport = tuple(self._viewport)
+        params = (
+            float(self._params.x) + float(self.pan[0]),
+            float(self._params.y) + float(self.pan[1]),
+            float(self._params.scale_x) * float(self.zoom),
+            float(self._params.scale_y) * float(self.zoom),
+        )
         for program in programs:
             program['viewport'] = tuple(self._viewport)
-            program['projection_params'] = tuple(self._params)
+            program['projection_params'] = params
 
     def hit_test(self, x, y):
         x1, y1, w, h = self._viewport

@@ -121,6 +121,7 @@ class Car:
         self.dirty = True
         self.anim_t = ConstantValue(0)
         self.view_rect = self.get_view_rect()
+        self.keypad = None
 
     def update_group(self):
         if not self.dirty:
@@ -182,6 +183,8 @@ class Car:
         self.dirty = True
         self.anim_t = AnimatedValue(ConstantValue(0), 1, duration)
         self.view_rect = self.get_view_rect()
+        if self.keypad:
+            self.keypad.pause(duration)
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
