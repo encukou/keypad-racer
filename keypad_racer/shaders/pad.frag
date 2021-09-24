@@ -4,11 +4,13 @@
 uniform vec3 color;
 uniform float button_size;
 uniform mat4x3 m_blocked;
+uniform sampler2D atlas_tex;
 
 in vec2 v_uv;
 flat in vec4 v_feature;
-flat in ivec2 v_decal;
+in vec2 v_decal;
 flat in ivec4 v_pad;
+flat in vec4 v_decal_limit;
 
 float csg_union(float d1, float d2) {
     return min(d1,d2);
@@ -34,6 +36,10 @@ float SDF_sharpcornered_box(vec2 p, vec2 size) {
 
 float SDF_sharpcornered_turned_box(vec2 p, float size) {
     return (abs(p.x) + abs(p.y))/sqrt(2) - size;
+}
+
+float median(float r, float g, float b) {
+    return max(min(r, g), min(max(r, g), b));
 }
 
 void main() {
@@ -84,14 +90,27 @@ void main() {
                 sdf,
                 csg_exclusion(v_uv.x+v_uv.y, v_uv.x-v_uv.y)-(1-t)*4/5)));
     }
-    */
-    vec3 btncolor = color;
-    if (m_blocked[v_pad.x+1][v_pad.y+1] > 0.5) btncolor = vec3(0.4);
+    //*/
     float aa = gridlines_per_px() * 4;
+    vec4 sample = texture(atlas_tex, v_decal);
+    if (v_decal.x < v_decal_limit.x) sample = vec4(-1.0);
+    if (v_decal.x > (v_decal_limit.x+v_decal_limit.z)) sample = vec4(-1.0);
+    if (v_decal.y > v_decal_limit.y) sample = vec4(-1.0);
+    float dist = (0.45 - median(sample.r, sample.g, sample.b))/2;
+    vec3 btncolor = color;
+    vec3 decalcolor = vec3(1.0);
+    if (m_blocked[v_pad.x+1][v_pad.y+1] > 0.5) {
+        btncolor = vec3(0.4);
+    }
+    if (dist < -aa) {
+        btncolor = decalcolor;
+    }
+    if (dist < 0) {
+        btncolor = mix(btncolor, decalcolor, -dist/aa);
+    }
+
     if (sdf < -aa) {
-        gl_FragColor = vec4(size, v_decal.x, length(v_uv), 0.5);
-        gl_FragColor = mix(vec4(size, v_decal.x, length(v_uv), 0.5),
-         vec4(btncolor, 1.0), 0.99);//XXX
+        gl_FragColor = vec4(btncolor, 1.0);
         return;
     }
     vec3 bordercolor = mix(btncolor, vec3(1.0),

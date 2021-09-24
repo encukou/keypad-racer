@@ -1,6 +1,8 @@
+import struct
 
 from . import resources
 from .anim import AnimatedValue, ConstantValue, autoschedule, Wait
+from .text import get_font
 
 def pack_f1(f):
     return int(f * 255)
@@ -22,6 +24,7 @@ class Keypad:
         self.ctx = ctx
         self.car = car
         car.keypad = self
+        self.font = None
 
         self.button_size = ConstantValue(1)
 
@@ -36,14 +39,14 @@ class Keypad:
             [+1,  0, 1, 11, pack_f1(.45), pack_f1(1/4), 0, 0],
         ):
             kp_vertices.extend(b % 256 for b in (
-                1, 255, *button, 0, 0,
-                255, 255, *button, 0, 0,
-                1,   1, *button, 0, 0,
-                255, 255, *button, 0, 0,
-                1,   1, *button, 0, 0,
-                255,   1, *button, 0, 0,
+                1, 255, *button, *bytes(14),
+                255, 255, *button, *bytes(14),
+                1,   1, *button, *bytes(14),
+                255, 255, *button, *bytes(14),
+                1,   1, *button, *bytes(14),
+                255,   1, *button, *bytes(14),
             ))
-        kp_vbo = ctx.buffer(kp_vertices)
+        self.kp_vbo = ctx.buffer(kp_vertices)
 
         self.pad_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/pad.vert'),
@@ -52,10 +55,12 @@ class Keypad:
         self.vao = ctx.vertex_array(
             self.pad_prog,
             [
-                (kp_vbo, '2i1 4i1 4f1 2u1', 'uv', 'pad', 'feature', 'decal'),
+                (self.kp_vbo, '2i1 4i1 4f1 4f2 3f2',
+                 'uv', 'pad', 'feature', 'decal', 'decal_size'),
             ],
         )
         self.pad_prog['color'] = self.car.color
+        #self.pad_prog['atlas_tex'] = 0
 
         self.update()
         self.enabled = True
@@ -99,10 +104,10 @@ class Keypad:
         view.setup(self.pad_prog)
         self.pad_prog['pos'] = self.pos
         self.pad_prog['top_pos'] = 0, 0, 0
-        self.pad_prog['skip'] = self.skips
-        # import math; import time; self.pad_prog['button_size'] = abs(math.sin(time.time()*1))
         self.pad_prog['button_size'] = self.button_size
         self.pad_prog['m_blocked'] = self.blocked
+        if self.font:
+            self.font.texture.use(location=0)
         self.vao.render(
             self.ctx.TRIANGLES,
             vertices=6*9,
@@ -135,9 +140,30 @@ class Keypad:
         x, y = self.car.pos
         xx, yy = self.car.velocity
         self.pos = x+xx, y+yy
-        self.skips = SKIPS.get((-xx, -yy), -1)
         self.blocked = tuple((
-            *(bool(self.car.blocker_on_path_to(x, y))
-              for x in (-1, 0, 1) for y in (-1, 0, 1)),
+            *(
+                -1
+                if (x,y) == (-xx,-yy)
+                else bool(self.car.blocker_on_path_to(x, y))
+                for x in (-1, 0, 1) for y in (-1, 0, 1)
+            ),
             0, 0, 0,
         ))
+
+    def set_decal(self, button, char):
+        self.font = get_font(self.ctx)
+        glyph = self.font.get_glyph(char, fallback='☼')
+        if glyph is None:
+            data = bytes(14)
+        else:
+            data = struct.pack(
+                '=4e3e',
+                *glyph.atlas_bounds,
+                *glyph.plane_bounds[1:],
+            )
+            print(glyph.atlas_bounds)
+        for i in range(6):
+            self.kp_vbo.write(data, offset=24*(i+6*button)+10)
+        #for i, b in enumerate(self.kp_vbo.read()):
+        #    if i%24 == 0: print()
+        #    print(b, end=',')

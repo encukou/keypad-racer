@@ -22,5 +22,5 @@ class TutorialScene(Scene):
         self.text = Text(car.group.ctx, 'Welcome to\nKeypad Racer!')
 
     def draw(self, view):
-        view.set_view_rects((-4, -4, 4, 4))
+        view.set_view_rect((-4, -8, 4, 4))
         self.text.draw(view)

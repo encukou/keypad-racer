@@ -26,8 +26,6 @@ class AnimatedValue:
             del self.start
             return self.end
         start = float(self.start)
-        print(t, self.easing)
-        print(self.easing(t))
         t = self.easing(t)
         return (1-t) * start + t * self.end
 

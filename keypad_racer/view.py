@@ -69,7 +69,7 @@ class View:
                 AnimatedValue(sp[2], r.scale_x, duration, sine_inout),
                 AnimatedValue(sp[3], r.scale_y, duration, sine_inout),
             )
-            self.zoom = AnimatedValue(self.zoom, 1/3+self.zoom.end*2/3, duration*2, sine_inout)
+            self.zoom = AnimatedValue(self.zoom, 1/3+self.zoom.end*2/3, duration, sine_inout)
             self.pan = (
                 AnimatedValue(self.pan[0], self.pan[0].end*2/3, duration, sine_inout),
                 AnimatedValue(self.pan[1], self.pan[1].end*2/3, duration, sine_inout),
@@ -97,8 +97,8 @@ class View:
 
     def adjust_pan(self, dx, dy):
         self.pan = (
-            AnimatedValue(self.pan[0], self.pan[0].end + dx, 0.2),
-            AnimatedValue(self.pan[1], self.pan[1].end + dy, 0.2),
+            AnimatedValue(self.pan[0], self.pan[0].end + dx, 0.1),
+            AnimatedValue(self.pan[1], self.pan[1].end + dy, 0.1),
         )
 
     def setup(self, *programs):

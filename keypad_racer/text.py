@@ -7,28 +7,32 @@ import png
 
 from . import resources
 
+def get_font(ctx):
+    try:
+        return ctx.extra.font
+    except AttributeError:
+        ctx.extra.font = Font(ctx, 'font.png')
+    return ctx.extra.font
+
 class Text:
     def __init__(self, ctx, chars):
         self.ctx = ctx
-        try:
-            font = ctx.extra.font
-        except AttributeError:
-            font = ctx.extra.font = Font(ctx, 'font.png')
-        self.font = font
+        self.font = font = get_font(ctx)
 
         vertices = bytearray()
         def layout_line(position, glyphs, ypos):
             position = -position/2
             for glyph in glyphs:
-                for u, v in (1, 0), (1, 0), (0, 0), (1, 1), (0, 1), (0, 1): 
-                    vertices.extend(struct.pack(
-                        '=2b4e4e2e',
-                        u, v,
-                        *glyph.plane_bounds,
-                        *glyph.atlas_bounds,
-                        position,
-                        ypos,
-                    ))
+                if glyph.atlas_bounds[2] > 0:
+                    for u, v in (1, 0), (1, 0), (0, 0), (1, 1), (0, 1), (0, 1): 
+                        vertices.extend(struct.pack(
+                            '=2b4e4e2e',
+                            u, v,
+                            *glyph.plane_bounds,
+                            *glyph.atlas_bounds,
+                            position,
+                            ypos,
+                        ))
                 position += glyph.advance
             glyphs.clear()
 
@@ -41,7 +45,7 @@ class Text:
                 position = 0
                 ypos -= 1
                 continue
-            glyph = font.get_char(char, 'italic')
+            glyph = font.get_glyph(char, 'italic')
             glyphs.append(glyph)
             position += glyph.advance
         layout_line(position, glyphs, ypos)
@@ -113,15 +117,17 @@ class Font:
         self.faces = {f.name: f for f in faces_seq}
         print(self.faces)
 
-    def get_char(self, char, *font_names):
+    def get_glyph(self, char, *font_names, fallback='☒'):
         for font_name in (*font_names, 'regular', 'fallback'):
             try:
                 return self.faces[font_name].glyphs[char]
             except KeyError:
                 pass
-        return self.faces['fallback'].glyphs['☒']
+        if fallback is None:
+            return None
+        return self.faces['fallback'].glyphs[fallback]
 
-    __getitem__ = get_char
+    __getitem__ = get_glyph
 
 class Face:
     def __init__(self, name, line_height):

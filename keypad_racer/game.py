@@ -24,7 +24,7 @@ for i in range(1):
     view = View(ctx, CarScene(car, keypad))
     window.add_view(view)
 
-#window.add_view(View(ctx, TutorialScene(car, view)))
+window.add_view(View(ctx, TutorialScene(car, view)))
 
 def global_key_event(car, action, is_pressed):
     if action == 'fullscreen' and is_pressed:
