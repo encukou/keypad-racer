@@ -1,6 +1,26 @@
 import collections
 
-Params = collections.namedtuple('Params', ('x', 'y', 'zoom', 'rot'))
+Params = collections.namedtuple('Params', ('x', 'y', 'scale_x', 'scale_y'))
+
+# A view is controlled by two rectangles:
+# - what *should* be in the scene
+# - what *needs* to be in the scene
+# These are interpolated based on a scale level with fixed limits
+
+def visible_rect_to_scene(rect, viewport):
+    pan_x = (rect[0] + rect[2]) / 2
+    pan_y = (rect[1] + rect[3]) / 2
+    scale_x = (rect[2] - rect[0]) * viewport[2] / 2
+    scale_y = (rect[3] - rect[1]) * viewport[3] / 2
+    scale = max(scale_x, scale_y)
+    print('x', scale_x, 'y', scale_y, rect, viewport)
+    if viewport[2] < viewport[3]:
+        scale_x = scale / viewport[3]
+        scale_y = scale / viewport[2]
+    if viewport[3] < viewport[2]:
+        scale_x = scale / viewport[3]
+        scale_y = scale / viewport[2]
+    return Params(pan_x, pan_y, scale_x, scale_y), scale
 
 class View:
     def __init__(self, ctx, scene):
@@ -8,6 +28,8 @@ class View:
         self.scene = scene
         self._viewport = 0, 0, 800, 600
         self._params = Params(*scene.default_projection)
+        self.zoom = 1
+        self.pan = 0, 0
 
     @property
     def viewport(self):
@@ -15,40 +37,45 @@ class View:
     @viewport.setter
     def viewport(self, res):
         self._viewport = res
-        self.adjust_zoom()
+        self.adjust_scale()
 
-    @property
-    def zoom(self):
-        return self._params.zoom
-    @zoom.setter
-    def zoom(self, zoom):
-        zoom_max = self._viewport[3] / 7
-        if zoom > zoom_max:
-            zoom = zoom_max
-        if zoom < 1:
-            zoom = 1
-        self._params = self._params._replace(zoom=zoom)
-
-    @property
-    def pan(self):
-        return self._params[:2]
-    @pan.setter
-    def pan(self, pan):
-        x, y = pan
-        self._params = self._params._replace(x=x, y=y)
-
-    def adjust_zoom(self, dz=0):
-        if self.scene.fixed_projection:
-            return
-        self.zoom = self._params.zoom * 1.1**dz
-
-    def adjust_pan(self, dx, dy):
-        self._params = self._params._replace(
-            x=self._params.x + dx,
-            y=self._params.y + dy,
+    rset = False
+    def set_view_rects(self, should, need=None):
+        #if self.rset: return
+        self.rset = True
+        r, z = visible_rect_to_scene(should, self.viewport)
+        self._params = Params(
+            r.x + self.pan[0],
+            r.y + self.pan[1],
+            r.scale_x*self.zoom,
+            r.scale_y*self.zoom,
         )
 
+    @property
+    def scale(self):
+        return self._params.scale_x, self._params.scale_y
+    @scale.setter
+    def scale(self, scale):
+        scale_max = self._viewport[3] / 7
+        if scale > scale_max:
+            scale = scale_max
+        if scale < 1:
+            scale = 1
+        self._params = self._params._replace(scale_x=scale, scale_y=scale)
+
+    def adjust_zoom(self, dz=0):
+        self.zoom = self.zoom * 1.1**dz
+    def adjust_scale(self, dz=0):
+        if self.scene.fixed_projection:
+            return
+        self.zoom = self.zoom * 1.1**dz
+
+    def adjust_pan(self, dx, dy):
+        print(dx, dy)
+        self.pan = self.pan[0] + dx, self.pan[1] + dy
+
     def setup(self, *programs):
+        print(self._params)
         self.ctx.scissor = tuple(self._viewport)
         self.ctx.viewport = tuple(self._viewport)
         for program in programs:

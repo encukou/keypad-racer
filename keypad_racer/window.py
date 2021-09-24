@@ -108,8 +108,8 @@ class Window:
         width = self.pyglet_window.width
         if view:
             view.adjust_pan(
-                -dx*view.zoom/width*4,
-                -dy*view.zoom/width*4,
+                -dx*view.scale[0]/view.viewport[2]*2,
+                -dy*view.scale[1]/view.viewport[3]*2,
             )
 
     def view_for_point(self, x, y):

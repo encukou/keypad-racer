@@ -1,14 +1,11 @@
 #version 330
+#include world_project.inc
 
-uniform float antialias;
 uniform vec3 color;
-uniform float zoom;
-uniform vec4 viewport;
 
 in float g_t;
 in float g_thickness;
 in float g_distance;
-in vec2 v_p0, v_p1, v_p;
 
 vec4 gradient_palette(vec3 color, float t) {
     if (t < 0.5) {
@@ -21,8 +18,7 @@ vec4 gradient_palette(vec3 color, float t) {
 void main() {
     float d = abs(g_distance);
     vec4 g_color = gradient_palette(color, g_t);
-    float aa = antialias / (viewport.z+viewport.w) * zoom;
-    float thickness = 0.5 - (1.0-g_t) / 4.0 - aa;
+    float thickness = g_thickness;
     gl_FragColor = g_color;
     gl_FragColor.r = d / 10;
     if (d < thickness) {
@@ -31,9 +27,10 @@ void main() {
         return;
     }
     d -= thickness;
+    float aa = gridlines_per_px();
     if (d < aa) {
         gl_FragColor = vec4(g_color.rgb, g_color.a * (1.0-d/aa));
         return;
     }
-    gl_FragColor = vec4(g_color.rgb, 0.0);
+    discard;
 }

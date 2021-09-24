@@ -20,7 +20,6 @@ class Text:
         def layout_line(position, glyphs, ypos):
             position = -position/2
             for glyph in glyphs:
-                print(position)
                 for u, v in (1, 0), (1, 0), (0, 0), (1, 1), (0, 1), (0, 1): 
                     vertices.extend(struct.pack(
                         '=2b4e4e2e',
@@ -46,10 +45,8 @@ class Text:
             glyphs.append(glyph)
             position += glyph.advance
         layout_line(position, glyphs, ypos)
-        print(position)
 
         text_vbo = ctx.buffer(vertices)
-        print(vertices)
         self.text_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/text.vert'),
             fragment_shader=resources.get_shader('shaders/text.frag'),
@@ -65,7 +62,6 @@ class Text:
     def draw(self, view):
         view.setup(self.text_prog)
         self.font.texture.use(location=0)
-        print('!')
         self.text_vao.render(
             self.ctx.TRIANGLE_STRIP,
         )

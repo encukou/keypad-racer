@@ -51,7 +51,6 @@ class Keypad:
                 (kp_vbo, '2i1 4i1 4f1 2u1', 'uv', 'pad', 'feature', 'decal'),
             ],
         )
-        self.pad_prog['antialias'] = 3
         self.pad_prog['color'] = self.car.color
 
     def draw(self, view):

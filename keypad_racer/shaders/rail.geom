@@ -1,7 +1,5 @@
-#version 150 core
-
-uniform vec4 viewport;
-uniform float antialias;
+#version 330
+#include world_project.inc
 
 in float v_thickness[];
 in vec4 v_color[];
@@ -17,14 +15,14 @@ void set_g_pervertex(int n) {
     g_color = v_color[n];
 }
 
-vec2 get_offset(vec2 p0, vec2 p1, vec2 p2, float z) {
+vec2 get_offset(vec2 p0, vec2 p1, vec2 p2) {
     vec2 direction = normalize(p2 - p1);
     vec2 dir_side = vec2(-direction.y, direction.x);
 
-    vec2 offset = dir_side / viewport.zw;
+    vec2 offset = dir_side;
     if (p0 != p1) {
-        vec2 t0 = normalize((p1 - p0)/viewport.wz);
-        vec2 t1 = normalize((p2 - p1)/viewport.wz);
+        vec2 t0 = normalize(p1 - p0);
+        vec2 t1 = normalize(p2 - p1);
         vec2 n0 = vec2(-t0.y, t0.x);
         vec2 n1 = vec2(-t1.y, t1.x);
         vec2 miter_direction = normalize(n0 + n1);
@@ -34,9 +32,13 @@ vec2 get_offset(vec2 p0, vec2 p1, vec2 p2, float z) {
             miter_direction = normalize(n0 - n1);
             dist = 1 / dot(miter_direction, n1);
         }
-        offset = miter_direction * dist / viewport.zw;
+        offset = miter_direction * dist;
     }
     return offset;
+}
+
+vec4 tr(vec2 point, vec2 offset) {
+    return vec4(world_transform(point, offset, 2.0), 0.0, 1.0);
 }
 
 void main()
@@ -49,26 +51,26 @@ void main()
     vec2 direction = normalize(p2-p1);
     vec2 dir_side = vec2(-direction.y, direction.x);
 
-    float half_quad_thickness = v_thickness[1]/2.0 + antialias;
-    vec2 offset = get_offset(p0, p1, p2, 1);
+    float g_distance1 = u_extend(1.0, 2.0);
 
+    vec2 offset;
+
+    offset = get_offset(p0, p1, p2);
     set_g_pervertex(1);
-    g_distance = antialias;
-    gl_Position = vec4(p1 + offset*antialias, 0.0, 1.0);
+    g_distance = g_distance1;
+    gl_Position = tr(p1, offset);
     EmitVertex();
-    g_distance = -antialias;
-    gl_Position = vec4(p1 - offset*antialias, 0.0, 1.0);
+    g_distance = -g_distance1;
+    gl_Position = tr(p1, - offset);
     EmitVertex();
 
-    half_quad_thickness = v_thickness[2]/2.0 + antialias;
-    offset = dir_side * half_quad_thickness / viewport.zw;
-    offset = -get_offset(p3, p2, p1, -1);
+    offset = -get_offset(p3, p2, p1);
     set_g_pervertex(2);
-    g_distance = antialias;
-    gl_Position = vec4(p2 + offset*antialias, 0.0, 1.0);
+    g_distance = g_distance1;
+    gl_Position = tr(p2, offset);
     EmitVertex();
-    g_distance = -antialias;
-    gl_Position = vec4(p2 - offset*antialias, 0.0, 1.0);
+    g_distance = -g_distance1;
+    gl_Position = tr(p2, -offset);
     EmitVertex();
 
     EndPrimitive();

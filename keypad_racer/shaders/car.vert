@@ -11,10 +11,11 @@ out vec4 v_color;
 out vec2 v_uv;
 
 void main() {
+    float aa = 1.0;
     gl_Position = vec4(
-        transform_car(pos, uv, orientation),
+        world_transform(pos, rotate(orientation) * uv/2, aa),
         0.0, 1.0
     );
     v_color = color;
-    v_uv = uv * 2;
+    v_uv = uv_extend(uv, aa);
 }

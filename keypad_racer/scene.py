@@ -11,6 +11,7 @@ class CarScene(Scene):
         self.keypad = keypad
 
     def draw(self, view):
+        view.set_view_rects(*self.car.get_view_rects())
         self.car.group.draw(view)
         self.keypad.draw(view)
 
@@ -21,4 +22,5 @@ class TutorialScene(Scene):
         self.text = Text(car.group.ctx, 'Welcome to\nKeypad Racer!')
 
     def draw(self, view):
+        view.set_view_rects((-4, -4, 4, 4))
         self.text.draw(view)

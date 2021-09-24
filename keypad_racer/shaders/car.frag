@@ -1,8 +1,5 @@
 #version 330
-
-uniform float antialias;
-uniform float zoom;
-uniform vec4 viewport;
+#include world_project.inc
 
 in vec4 v_color;
 in vec2 v_uv;
@@ -27,13 +24,13 @@ void main() {
     gl_FragColor = v_color;
     float sdf = sdTrapezoid(v_uv, 0.60, 0.43, 0.9);
     if (sdf < 0) {
-        gl_FragColor = vec4(v_color.xyz, 1.0);
+        gl_FragColor = vec4(1.0, v_color.yz, 1.0);
         return;
     }
-    float aa = antialias * zoom / viewport.w * 2;
+    float aa = 3 * gridlines_per_px();
     if (sdf < aa) {
         gl_FragColor = vec4(v_color.xyz, 1.0 - sdf/aa);
         return;
     }
-    gl_FragColor = vec4(v_color.xyz, 0.0);
+    discard;
 }

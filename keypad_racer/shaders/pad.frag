@@ -1,9 +1,7 @@
 #version 330
+#include world_project.inc
 
-uniform vec4 viewport;
-uniform vec4 projection_params;
 uniform vec3 color;
-uniform float antialias;
 uniform float button_size;
 
 in vec2 v_uv;
@@ -43,8 +41,8 @@ void main() {
     float sdf =
         SDF_box(v_uv, vec2(size - corner_r) * button_size)
         - corner_r * button_size;
-    if (v_pad.z == 0) {
     /*
+    if (v_pad.z == 0) {
         vec2 box = v_pad.xy;
         if (v_pad.x != 0 && v_pad.y != 0) {
             sdf = csg_union(
@@ -59,7 +57,6 @@ void main() {
                     v_uv - box*size*.76*button_size,
                     size*.6*button_size));
         }
-    */
     } else if (v_feature.z != 0) {
         float s = sqrt(2.0);
         float t = button_size*2;
@@ -86,14 +83,19 @@ void main() {
                 sdf,
                 csg_exclusion(v_uv.x+v_uv.y, v_uv.x-v_uv.y)-(1-t)*4/5)));
     }
-    float aa = antialias * projection_params.z / viewport.w * 2;
+    */
+    float aa = gridlines_per_px() * 4;
     if (sdf < -aa) {
         gl_FragColor = vec4(size, v_decal.x, length(v_uv), 0.5);
         gl_FragColor = mix(vec4(size, v_decal.x, length(v_uv), 0.5),
          vec4(color, 1.0), 0.99);//XXX
         return;
     }
-    vec3 bordercolor = mix(color, vec3(1.0), 0.9);
+    vec3 bordercolor = mix(color, vec3(1.0),
+        mix(
+            length(v_pad.xy + v_uv)/3.5,
+            1.0,
+            smoothstep(0, 20, 1/gridlines_per_px())));
     if (sdf < 0) {
         gl_FragColor = vec4(mix(color, bordercolor, 1+(sdf/aa)), 1.0);
         return;

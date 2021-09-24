@@ -2,27 +2,34 @@
 
 uniform vec4 projection_params;
 uniform vec4 viewport;
-uniform float antialias;
 
-vec2 transform_car (vec2 pos, vec2 uv, float orientation) {
-    float wrot = projection_params.w;
-    float swr = sin(wrot);
-    float cwr = cos(wrot);
-    mat2 rotw = mat2(
-        cwr, swr,
-        -swr, cwr
-    );
-    float so = sin(orientation);
-    float co = cos(orientation);
-    mat2 rot = mat2(
-        co, so,
-        -so, co
-    );
-    float zoom = projection_params.z;
-    vec2 zoomat = vec2(
-        1.0/zoom*viewport.w/viewport.z,
-        1.0/zoom
-    );
-    return rotw * ((uv * rot + pos - projection_params.xy) * zoomat
-        + (uv * antialias * rot / viewport.zw));
+/* projection_params are:
+ * xy -- pan
+ * zw -- scale
+ */
+
+mat2 rotate(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat2(c, s, -s, c);
+}
+
+float gridlines_per_px() {
+    return projection_params.z / viewport.z;
+}
+
+vec2 uv_extend(vec2 uv, float aa) {
+    return uv + normalize(uv) * aa * gridlines_per_px();
+}
+
+float u_extend(float u, float aa) {
+    return u + aa * gridlines_per_px();
+}
+
+vec2 world_transform(vec2 pos, vec2 uv, float aa) {
+    vec2 pan = projection_params.xy;
+    vec2 scale = projection_params.zw;
+    return (
+        pos - pan + uv_extend(uv, aa)
+    ) / scale;
 }

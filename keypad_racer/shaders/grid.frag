@@ -3,29 +3,36 @@
 uniform sampler2D intersections_tex;
 uniform ivec2 grid_origin;
 
-in vec2 v_uv;
-in float line_width;
-in float antialias;
+in vec2 grid_uv;
+flat in vec2 line_width;
+flat in vec2 antialias;
 in vec2 v_screenuv;
 in vec2 v_screenuv_norm;
 
-float c(float tile_pos) {
-    float dist = fract(tile_pos);
-    if (dist > 0.5) dist = 1.0 - dist;
-    if (dist < line_width / 2) return 1.0;
-    dist -= line_width / 2;
-    if (dist < antialias) {
-        return 1.0 - pow(dist / antialias, 1.8);
+float c1(float dist, float lw, float aa) {
+    dist = abs(dist - 0.5);
+    if (dist < lw / 2) return 1.0;
+    dist -= lw / 2;
+    if (dist < aa) {
+        return 1.0 - pow(dist / aa, 1.8);
     }
     return 0.0;
 }
 
+vec2 c(vec2 tile_pos) {
+    vec2 dist = fract(tile_pos - 0.5);
+    return vec2(
+        c1(dist.x, line_width.x, antialias.x),
+        c1(dist.y, line_width.y, antialias.y));
+}
+
 void main() {
-    vec2 tpos = fract(v_uv);
-    float strength = max(c(tpos.x), c(tpos.y));
-    float pointstrength = min(c(tpos.x), c(tpos.y));
-    ivec2 tilepos = ivec2(round(v_uv));
-    vec2 intilepos = (vec2(tilepos) - (v_uv));
+    vec2 tpos = fract(grid_uv);
+    vec2 cr = vec2(c(tpos).x, c(tpos).y);
+    float strength = max(cr.x, cr.y);
+    float pointstrength = min(cr.x, cr.y);
+    ivec2 tilepos = ivec2(round(grid_uv));
+    vec2 intilepos = (vec2(tilepos) - (grid_uv));
     tilepos += grid_origin;
     ivec2 neighbour = tilepos;
     int arm_axis;

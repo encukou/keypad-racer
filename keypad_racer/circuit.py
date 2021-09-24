@@ -68,7 +68,6 @@ class Circuit:
             fragment_shader=resources.get_shader('shaders/rail.frag'),
         )
         self.rail_prog['grid_origin'] = start_x, start_y
-        self.rail_prog['antialias'] = 2
         self.rail_vao = ctx.vertex_array(
             self.rail_prog,
             [

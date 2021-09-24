@@ -51,7 +51,6 @@ class CarGroup:
                 (self.cars_vbo, '2f4 f4 3f4 /i', 'pos', 'orientation', 'color'),
             ],
         )
-        self.car_prog['antialias'] = 2
 
         self.line_prog = ctx.program(
             vertex_shader=resources.get_shader('shaders/car_line.vert'),
@@ -77,7 +76,6 @@ class CarGroup:
             ],
             skip_errors=True,
         )
-        self.line_prog['antialias'] = 8
 
     def draw(self, view):
         self.circuit.draw(view)
@@ -115,6 +113,10 @@ class Car:
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
         self.velocity = 0, 1
         self.dirty = 2      # bitfield: 1=position/orientation; 2=color
+        self._move(1, 1)
+        self._move(2, 0)
+        self._move(-1, -1)
+        self._move(-2, 1)
 
     def update_group(self):
         if not self.dirty:
@@ -168,10 +170,21 @@ class Car:
                 buf,
                 buf,
             ]
-            self._orientation = math.tau/4 - math.atan2(vy, vx)
+            self._orientation = - math.atan2(vx, vy)
             self._pos = new
         self.dirty |= 1
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
             self._move(*xy)
+
+    def get_view_rects(self):
+        # XXX: Should
+        x, y = self.pos
+        dx, dy = self.velocity
+        if self.index:
+            need = x + dx - 2, y + dy - 2, x + dx + 2, y + dy + 2
+        else:
+            need = x + dx - 2, y + dy - 50, x + dx + 50, y + dy + 30
+        return [need]
+

@@ -21,9 +21,9 @@ void main() {
         top_pos.xy,
         pad.z * top_pos.z
     ) + pad.xy;
-    gl_Position = vec4(transform_car(position, uv, 0), 0.0, 1.0);
+    gl_Position = vec4(world_transform(position, uv/2, 4.0), 0.0, 1.0);
     if (skip == pad.w) gl_Position = vec4(0.0);
-    v_uv = uv*2;
+    v_uv = uv_extend(uv, 4.0);
     v_feature = feature;
     v_decal = decal;
     v_pad = pad;
