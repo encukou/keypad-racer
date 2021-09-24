@@ -29,11 +29,11 @@ void main() {
     antialias = scale / viewport.zw;    // gridlines per px
     float px_per_scanline = 1/min(antialias.x, antialias.y);
     line_width = antialias * mix(
-        1,     // minimum (px at 5px/gridline)
-        10,    // maximum (px at 50px/gridline)
+        1,     // minimum (px at 8px/gridline)
+        5,    // maximum (px at 30px/gridline)
         smoothstep(
-            5,
-            50,
+            8,
+            30,
             px_per_scanline
         )
     );

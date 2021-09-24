@@ -28,7 +28,7 @@ vec2 get_offset(vec2 p0, vec2 p1, vec2 p2) {
         vec2 n1 = vec2(-t1.y, t1.x);
         vec2 miter_direction = normalize(n0 + n1);
         float dist = 1 / dot(miter_direction, n1);
-        if (dist > 6) {
+        if (dist > 10) {
             // Switch to a miter joint
             miter_direction = normalize(n0 - n1);
             dist = 1 / dot(miter_direction, n1);

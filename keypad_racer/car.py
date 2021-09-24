@@ -116,7 +116,8 @@ class Car:
         self._move(1, 1)
         self._move(2, 0)
         self._move(-1, -1)
-        self._move(-2, 1)
+        self._move(-3, 1)
+        self.velocity = 0, 0
 
     def update_group(self):
         if not self.dirty:
@@ -179,12 +180,22 @@ class Car:
             self._move(*xy)
 
     def get_view_rects(self):
-        # XXX: Should
         x, y = self.pos
+        x1, y1 = self.pos
+        x2, y2 = self.pos
+        x3, y3 = self.pos
         dx, dy = self.velocity
-        if self.index:
-            need = x + dx - 2, y + dy - 2, x + dx + 2, y + dy + 2
-        else:
-            need = x + dx - 2, y + dy - 50, x + dx + 50, y + dy + 30
+        for dx2 in range(abs(dx)):
+            x1 += dx
+        for dy2 in range(abs(dy)):
+            y1 += dy
+        need = [
+            min(x, x1, x + dx, x - dx) - 5,
+            min(y, y1, y + dy, y - dy) - 5,
+            max(x, x1, x + dx, x - dx) + 5,
+            max(y, y1, y + dy, y - dy) + 5,
+        ]
+        print('need', need, x, y)
+        # XXX: Should
         return [need]
 
