@@ -2,6 +2,7 @@ from pathlib import Path
 import struct
 import sys
 import zlib
+import math
 
 import png
 
@@ -18,6 +19,7 @@ class Circuit:
             self.height = height
             for row in reversed(list(rows)):
                 intersection_data.extend(row)
+        self.intersection_data = intersection_data
 
         # Get start point and rail coordinates from custom chunks
         start_x = start_y = 0
@@ -39,6 +41,9 @@ class Circuit:
         self.intersection_tex = ctx.texture(
             (width, height), 4, intersection_data,
         )
+
+        if not rail_data:
+            rail_data.append(0)
 
         uv_vertices = bytes((
             1, 255,
@@ -75,6 +80,8 @@ class Circuit:
                 (ctx.buffer(b'\xff\xff\xff\x88\x00'), '4f1 u1 /i', 'color', 'thickness'),
             ],
         )
+        self.start_x = start_x
+        self.start_y = start_y
 
     def draw(self, view):
         view.setup(self.grid_prog, self.rail_prog)
@@ -88,3 +95,32 @@ class Circuit:
                 first=start,
                 vertices=num,
             )
+
+    def get_pixel(self, x, y):
+        x += self.start_x
+        y += self.start_y - 1
+        if 0 <= x < self.width and 0 <= y < self.height:
+            idx = x*4 + y*4*self.width
+            return self.intersection_data[idx:idx + 4]
+        return b'\0\0\0\0'
+
+    def is_on_track(self, x, y):
+        return sum(self.get_pixel(x, y))
+
+    def y_intersection_passable(self, x, y):
+        y0 = math.floor(y)
+        rem = y - y0
+        if rem < self.get_pixel(x, y0)[1]:
+            return True
+        if 1-rem < self.get_pixel(x, y0+1)[3]:
+            return True
+        return False
+
+    def x_intersection_passable(self, x, y):
+        x0 = math.floor(x)
+        rem = x - x0
+        if rem < self.get_pixel(x0, y)[0]:
+            return True
+        if 1-rem < self.get_pixel(x0+1, y)[2]:
+            return True
+        return False

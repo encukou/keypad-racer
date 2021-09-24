@@ -113,11 +113,20 @@ class Car:
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
         self.velocity = 0, 1
         self.dirty = 2      # bitfield: 1=position/orientation; 2=color
-        self._move(1, 1)
-        self._move(2, 0)
-        self._move(-1, -1)
-        self._move(-3, 1)
-        self.velocity = 0, 0
+        self._pos = self._pos[0] + 68+5*1, -207-5*6
+        self.velocity = 0, 5
+        self._move(0, 0)
+        self._move(0, 0)
+        self._move(0, 0)
+        self._move(0, 0)
+        self._move(0, 0)
+        self.velocity = -4, 5
+        self._move(0, 0)
+        if self.index == 0:
+            for x in -1,0,1:
+                for y in 1,0,-1:
+                    print(self.pos, x, y)
+                    print('Blocked at', self.blocker_on_path_to(x, y))
 
     def update_group(self):
         if not self.dirty:
@@ -195,7 +204,53 @@ class Car:
             max(x, x1, x + dx, x - dx) + 5,
             max(y, y1, y + dy, y - dy) + 5,
         ]
-        print('need', need, x, y)
         # XXX: Should
         return [need]
 
+    def blocker_on_path_to(self, x, y):
+        crash_ts = []
+        circuit = self.group.circuit
+        sx, sy = self.pos
+        vx, vy = self.velocity
+        dest_x = sx + vx + x
+        dest_y = sy + vy + y
+        print(end=' '*15)
+        xrange = abs(sx - dest_x)
+        for t in range(xrange + 1):
+            t /= xrange
+            x = (1-t) * sx + t * dest_x
+            y = (1-t) * sy + t * dest_y
+            ok = circuit.y_intersection_passable(round(x), y);
+            if not ok:
+                crash_ts.append(t)
+                break
+            print(f'{int(x):2}:{y:8.2f} {" ."[ok]}| ', end='')
+        print()
+
+        yrange = abs(sy - dest_y)
+        for t in range(yrange + 1):
+            t /= yrange
+            x = (1-t) * sx + t * dest_x
+            y = (1-t) * sy + t * dest_y
+            ok = circuit.x_intersection_passable(x, round(y))
+            print(f'{x:6.2f}:{int(y):4} {" ."[ok]}| ', end='')
+
+            y = round(y)
+            for x in reversed(_all(sx, dest_x)):
+                print(f'{x} {y} {circuit.is_on_track(x,y):4}', end=' | ')
+            print()
+
+            if not ok:
+                crash_ts.append(t)
+                break
+        if crash_ts:
+            t = min(crash_ts)
+            x = (1-t) * sx + t * dest_x
+            y = (1-t) * sy + t * dest_y
+            return x, y, t
+        return None
+
+
+def _all(a, b):
+    a, b = sorted((a, b))
+    return range(math.floor(a), math.ceil(b)+1)
