@@ -180,7 +180,6 @@ class Window:
             h = height // row_count
             x = col * width // col_count
             y = bottom + row * height // row_count
-            """
             if col > 0:
                 w -= border
                 x += border
@@ -188,11 +187,9 @@ class Window:
                 w -= border
             if row > 0:
                 h -= border
-                y -= border
+                y += border
             if row < col_count-1:
                 h -= border
-            """
-            print(n,row, col, row_count, col_count, (x, y, w/2, h))
             view.set_viewport((x, y, w, h))
 
     def add_view(self, view):

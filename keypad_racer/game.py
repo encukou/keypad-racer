@@ -48,9 +48,10 @@ elif False:
             scene = CarScene(car, keypad)
             window.add_view(View(ctx, scene))
 else:
+    circuit = Circuit(ctx, 'okruh.png')
     scene = TitleTop(ctx, window, kbd)
     window.add_view(View(ctx, scene))
-    scene = TitleBottom(ctx, window, kbd)  # this has titlescreen logic :/
+    scene = TitleBottom(ctx, window, kbd, circuit)  # this has titlescreen logic :/
     window.add_view(View(ctx, scene))
 
 def global_key_event(action, is_pressed):

@@ -113,6 +113,9 @@ class Keypad:
         else:
             self.callbacks[button] = action
 
+    def clear_callbacks(self):
+        self.callbacks.clear()
+
     @autoschedule
     async def pause(self, blocker, fadeout_time=.2, fadein_time=.1):
         self.button_size = AnimatedValue(self.button_size, -1, fadeout_time)

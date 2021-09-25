@@ -4,13 +4,14 @@ import os
 
 import pyglet
 
-from .scene import Scene, KeypadScene
+from .scene import Scene, KeypadScene, CarScene
 from .text import Text
 from .palette import COLORS
 from .anim import AnimatedValue, ConstantValue, sine_in
 from .keypad import Keypad
 from .keyboard import keylabel
 from .view import View
+from .car import CarGroup, Car
 from . import keyboard
 
 def animN(src, dest, *args, **kwargs):
@@ -47,11 +48,12 @@ class TitleTop(Scene):
 
 class TitleBottom(KeypadScene):
     pin_side = 'bottom'
-    def __init__(self, ctx, window, kbd):
+    def __init__(self, ctx, window, kbd, circuit):
         keypad = Keypad(ctx, color=(.9, .9, .9))
         super().__init__(keypad, kbd)
         self.kbd = kbd
         self.ctx = ctx
+        self.circuit = circuit
         self.window = window
         self.players = []
 
@@ -95,7 +97,7 @@ class TitleBottom(KeypadScene):
             keypad.set_callback(btn, partial(self.add_player, btn, layouts))
 
         keypad.set_callback(0, self.remove_player)
-        #keypad.set_callback(1, self.start_game)
+        keypad.set_callback(1, self.start_game)
         keypad.set_callback(3, window.toggle_fullscreen)
         keypad.set_callback(6, self.quit_game)
 
@@ -209,6 +211,27 @@ class TitleBottom(KeypadScene):
             else:
                 return color
         return 1, 1, 1
+
+    def start_game(self):
+        for player in self.players:
+            player.clear_callbacks()
+        self.window.views.clear()
+        car_group = CarGroup(self.ctx, self.circuit)
+        def _gen_xpositions():
+            i = 0
+            yield i
+            while True:
+                i += 1
+                yield i
+                yield -i
+        for x, player in zip(_gen_xpositions(), self.players):
+            car = Car(car_group, player.color, (x, 0))
+            car.keypad = player
+            player.car = car
+            player.update()
+            scene = CarScene(car, player)
+            view = View(self.ctx, scene)
+            self.window.add_view(view)
 
 class Caption:
     def __init__(self, ctx, keypad, button, template, unassigned_message,
