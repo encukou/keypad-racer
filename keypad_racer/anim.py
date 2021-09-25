@@ -1,5 +1,6 @@
 import time
 import functools
+import math
 
 import pyglet
 
@@ -32,11 +33,11 @@ class AnimatedValue:
     def __repr__(self):
         return f'<{self.start}→{self.end}:{float(self)}>'
 
-    def __aiter__(self):
+    def __await__(self):
         time_to_wait = self.clock() - self.begin + self.duration
         if time_to_wait > 1:
-            return iter([time_to_wait])
-        return iter(())
+            yield time_to_wait
+        return self
 
 class ConstantValue:
     def __init__(self, end):
@@ -48,8 +49,9 @@ class ConstantValue:
     def __repr__(self):
         return f'<{self.end}>'
 
-    def __aiter__(self):
-        return iter(())
+    def __await__(self):
+        return self
+        yield
 
 def drive(it, dt):
     try:
@@ -70,8 +72,23 @@ class Wait:
     def __init__(self, time_to_wait):
         self.time_to_wait = time_to_wait
 
-    def __aiter__(self):
-        return iter([time_to_wait])
-
     def __await__(self):
         yield self.time_to_wait
+
+
+def cubic_inout(t):
+    if t < 0.5:
+        return 4 * t ** 3
+    p = 2 * t - 2
+    return 0.5 * p ** 3 + 1
+
+def sine_inout(t):
+    return 0.5 * (1 - math.cos(t * math.pi))
+
+
+def sine_in(t):
+    return math.sin((t - 1) * math.pi / 2) + 1
+
+
+def sine_out(t):
+    return math.sin(t * math.pi / 2)

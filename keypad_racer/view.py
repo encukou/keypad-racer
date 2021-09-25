@@ -1,7 +1,7 @@
 import collections
 import math
 
-from .anim import AnimatedValue, ConstantValue
+from .anim import AnimatedValue, ConstantValue, sine_inout
 
 Params = collections.namedtuple('Params', ('x', 'y', 'scale_x', 'scale_y'))
 
@@ -25,15 +25,6 @@ def visible_rect_to_scene(rect, viewport):
         scale_x = scale * viewport[2]
         scale_y = scale * viewport[3]
     return Params(pan_x, pan_y, scale_x, scale_y), scale
-
-def cubic_inout(t):
-    if t < 0.5:
-        return 4 * t ** 3
-    p = 2 * t - 2
-    return 0.5 * p ** 3 + 1
-
-def sine_inout(t):
-    return 0.5 * (1 - math.cos(t * math.pi))
 
 class View:
     def __init__(self, ctx, scene):

@@ -3,6 +3,7 @@ import struct
 from . import resources
 from .anim import AnimatedValue, ConstantValue, autoschedule, Wait
 from .text import get_font
+from .palette import Palette
 
 def pack_f1(f):
     return int(f * 255)
@@ -20,10 +21,11 @@ SKIPS = {
 }
 
 class Keypad:
-    def __init__(self, ctx, car):
+    def __init__(self, ctx, car=None):
         self.ctx = ctx
         self.car = car
-        car.keypad = self
+        if car:
+            car.keypad = self
         self.font = None
 
         self.button_size = ConstantValue(1)
@@ -59,46 +61,14 @@ class Keypad:
                  'uv', 'pad', 'feature', 'decal', 'decal_size'),
             ],
         )
-        self.pad_prog['color'] = self.car.color
+        if car:
+            self.pad_prog['color'] = car.color
+        else:
+            self.pad_prog['color'] = Palette().player_color(0)
         #self.pad_prog['atlas_tex'] = 0
 
         self.update()
         self.enabled = True
-
-        """
-        import struct
-        self.helper_vbo = ctx.buffer(self._helper_ba(), dynamic=True)
-        self.helper_prog = ctx.program(
-            vertex_shader=resources.get_shader('shaders/rail.vert'),
-            geometry_shader=resources.get_shader('shaders/rail.geom'),
-            fragment_shader=resources.get_shader('shaders/rail.frag'),
-        )
-        self.helper_vao = ctx.vertex_array(
-            self.helper_prog,
-            [
-                (self.helper_vbo, '2f2', 'point'),
-                (ctx.buffer(b'\xff\xff\xff\x88\x00'), '4f1 u1 /i', 'color', 'thickness'),
-            ],
-        )
-        self.helper_prog['grid_origin'] = 0, 0
-        """
-    def _helper_ba(self):
-        ba = bytearray()
-        dx, dy = self.car.velocity
-        for x in -1, 0, 1:
-            for y in -1, 0, 1:
-                ba.extend(bytes(8))
-                blk = self.car.blocker_on_path_to(x, y)
-                px = dx + x
-                py = dy + y
-                if blk:
-                    _, _, t = blk
-                    px *= t
-                    py *= t
-                import struct
-                ba.extend(struct.pack('=4e', *(b for b in (px, py, px, py))))
-        ba.extend(bytes(8))
-        return ba
 
     def draw(self, view):
         view.setup(self.pad_prog)
@@ -113,18 +83,10 @@ class Keypad:
             vertices=6*9,
         )
 
-        """
-        view.setup(self.helper_prog)
-        self.helper_vbo.write(self._helper_ba())
-        self.helper_prog['grid_origin'] = -x, -y
-        self.helper_vao.render(
-            self.ctx.LINE_STRIP_ADJACENCY,
-        )
-        """
-
     def kbd(self, direction, is_pressed):
         if is_pressed and self.enabled:
-            self.car.act(direction)
+            if self.car:
+                self.car.act(direction)
 
     @autoschedule
     async def pause(self, duration):
@@ -137,6 +99,10 @@ class Keypad:
         self.button_size = AnimatedValue(self.button_size, 1, .1)
 
     def update(self):
+        if not self.car:
+            self.pos = 0, 0
+            self.blocked = (0,) * 12
+            return
         x, y = self.car.pos
         xx, yy = self.car.velocity
         self.pos = x+xx, y+yy

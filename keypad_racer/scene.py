@@ -14,13 +14,3 @@ class CarScene(Scene):
         view.set_view_rect(self.car.view_rect)
         self.car.group.draw(view)
         self.keypad.draw(view)
-
-class TutorialScene(Scene):
-    fixed_projection = 400, 600
-    default_projection = 0, 0, 10, 0
-    def __init__(self, car, controlled_view):
-        self.text = Text(car.group.ctx, 'Welcome to\nKeypad Racer!')
-
-    def draw(self, view):
-        view.set_view_rect((-4, -8, 4, 4))
-        self.text.draw(view)

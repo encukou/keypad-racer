@@ -117,7 +117,7 @@ class Car:
         self._pos = pos
         self.last_pos = pos
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
-        self.velocity = 0, 1
+        self.velocity = 0, 3
         self.dirty = True
         self.anim_t = ConstantValue(0)
         self.view_rect = self.get_view_rect()
