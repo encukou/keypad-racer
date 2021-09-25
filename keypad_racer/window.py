@@ -49,6 +49,9 @@ class PygletWindow(pyglet.window.Window):
             self.set_location(200, 800)
         if 'GAME_DEVEL_ENVIRON2' in os.environ:
             self.set_location(1100, 200)
+        with resources.open('icon/icon.png', 'rb') as f:
+            icon = pyglet.image.load('icon/icon.png', file=f)
+            self.set_icon(icon)
 
     def on_resize(self, width, height):
         pass
