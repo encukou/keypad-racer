@@ -98,7 +98,10 @@ class Keypad:
                 self.callbacks[direction]()
 
     def set_callback(self, button, action):
-        self.callbacks[button] = action
+        if action is None:
+            self.callbacks.pop(button, None)
+        else:
+            self.callbacks[button] = action
 
     @autoschedule
     async def pause(self, blocker, fadeout_time=.2, fadein_time=.1):

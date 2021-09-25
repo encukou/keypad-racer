@@ -50,14 +50,16 @@ def tutorial(ctx, palette, kbd):
     scene = TutorialScene()
     yield scene
 
-    scene.things.append(
-        Text(car.group.ctx, 'Welcome to\nKeypad Racer!', ypos=1, outline=True)
-    )
+    text = Text(car.group.ctx, 'Welcome to\nKeypad Racer!', ypos=1, outline=True)
+    scene.things.append(text)
+    text.body_color = animN(text.body_color, (*car.color, 1), 0, sine_in)
+    text.body_color = animN(text.body_color, (1, 1, 1, 1), 2, sine_in)
+    text.outline_color = animN(text.outline_color, (1, 1, 1, 0), 1, sine_in)
 
-    speedscale = 100
-    ypos = -2
+    speedscale = 1
+    ypos = -2.25
 
-    async def wait_for_text(text, delay=0.5, lineh=None, **kwargs):
+    async def wait_for_text(text, delay=0.25, lineh=None, **kwargs):
         nonlocal ypos
         kwargs.setdefault('scale', 1)
         color = kwargs.pop('color', (*car.color,1))
@@ -76,7 +78,7 @@ def tutorial(ctx, palette, kbd):
 
     async def next_scene(keep_longer=()):
         nonlocal ypos
-        ypos -= 3
+        ypos -= 4
         scene.view_rect = -4, ypos - 8, 4, ypos + 4
         @fork
         async def f():
@@ -109,7 +111,7 @@ def tutorial(ctx, palette, kbd):
     async def cont():
         nonlocal ypos
         await Wait(0.5/speedscale)
-        update_car_view_rect(3, 3, 0, -3)
+        update_car_view_rect(3, 3, 0, -4)
         await wait_for_text('← This is a race car.  ', scale=0.75, lineh=1)
         await wait_for_text("Let's learn to control it.", scale=0.65, lineh=1)
         num_text = await wait_for_text(
@@ -167,11 +169,11 @@ def tutorial(ctx, palette, kbd):
         unblock_keypad()
 
         #await next_scene()
+        unblock_keypad(2, reset=True)
         await wait_for_text("How about steering?.", scale=0.65, lineh=1)
         await wait_for_text(f"Use the {keyname(layout[6])} key to turn slightly.", scale=0.65, lineh=1)
         blocker = Blocker()
         keypad.set_callback(6, blocker.unblock)
-        unblock_keypad(2, reset=True)
         await blocker
         duration = car.move(-1, 1)
         update_car_view_rect(5, 8)
@@ -179,6 +181,9 @@ def tutorial(ctx, palette, kbd):
         keypad.update(car)
 
         await next_scene()
+        unblock_keypad(2)
+        unblock_keypad(5)
+        unblock_keypad(8)
         await wait_for_text("Labels on the grid show", scale=0.65, lineh=.7)
         await wait_for_text("where the car will go", scale=0.65, lineh=.7)
         await wait_for_text("if you press a key.", scale=0.65, lineh=1.05)
@@ -188,9 +193,6 @@ def tutorial(ctx, palette, kbd):
         blocker = Blocker()
         for n in 6, 7, 8:
             keypad.set_callback(n, partial(blocker.unblock, n))
-        unblock_keypad(2)
-        unblock_keypad(5)
-        unblock_keypad(8)
         direction = await blocker
         duration = car.act(direction)
         update_car_view_rect(6, 8, 0, -3)
@@ -199,33 +201,66 @@ def tutorial(ctx, palette, kbd):
 
         await next_scene()
         print(direction)
+        ypos += 2
         if direction == 6:
-            await wait_for_text("That didn't turn left at all!", scale=0.65, lineh=.7)
-            await wait_for_text("You're headed to a crash.", scale=0.65, lineh=1)
+            await wait_for_text("That wasn't left at all!", scale=0.65, lineh=.7)
+            await wait_for_text("You're headed for a crash.", scale=0.65, lineh=.7)
+            await wait_for_text("The curve ahead is close!", scale=0.65, lineh=1)
         elif direction == 7:
             await wait_for_text("The car didn't turn as much", scale=0.65, lineh=.7)
             await wait_for_text("to the left as it could,", scale=0.65, lineh=.7)
-            await wait_for_text("but that wss your choice.", scale=0.65, lineh=1)
+            await wait_for_text("but that was your choice.", scale=0.65, lineh=1)
+            await wait_for_text("The curve ahead is close!", scale=0.65, lineh=.7)
         else:
             await wait_for_text("Good job!", scale=0.65, lineh=1)
-
-        await wait_for_text("The curve ahead is close, though.", scale=0.65, lineh=.7)
+            await wait_for_text("The curve ahead is close, though.", scale=0.65, lineh=.7)
         await wait_for_text("Decelerate!", scale=0.65, lineh=1)
         await wait_for_text(f"The keys closer to your car:", scale=0.65, lineh=0.7)
         await wait_for_text(f"{keyname(layout[0])}, {keyname(layout[1])} and {keyname(layout[2])}", scale=0.65, lineh=0.7)
         await wait_for_text(f"will reduce your speed.", scale=0.65, lineh=1)
+        await wait_for_text(f"With the center one, {keyname(layout[4])}", scale=0.65, lineh=.7)
+        await wait_for_text(f"you'll keep current speed.", scale=0.65, lineh=1)
         await wait_for_text(f"Try slowing down as much", scale=0.65, lineh=.7)
         await wait_for_text(f"as you can!", scale=0.65, lineh=1)
 
+        speed_before_crash = 0
+        blocker = Blocker()
         def drive(n):
-            duration = car.act(n)
-            update_car_view_rect(6, 8, 0, -3)
-            keypad.pause(duration, fadeout_time=0)
-            keypad.update(car)
+            nonlocal speed_before_crash
+            speed_before_crash = car.speed
+            if car.blocker_on_direction(n):
+                keypad.car = car
+                car.keypad = keypad
+                car.act(n)
+                car_scene.follow_car = True
+                blocker.unblock()
+            else:
+                duration = car.act(n)
+                update_car_view_rect(6, 8, 0, -3)
+                keypad.pause(duration, fadeout_time=0)
+                keypad.update(car)
 
         for n in range(9):
             keypad.set_callback(n, partial(drive, n))
 
+        await blocker
+        for n in range(9):
+            keypad.set_callback(n, None)
+        keypad.update()
+
+        await next_scene()
+
+        await wait_for_text("Whoops! You crashed!", scale=0.65, lineh=1)
+        await wait_for_text("Don't feel bad: this", scale=0.65, lineh=.7)
+        await wait_for_text("tutorial is rigged...", scale=0.65, lineh=1)
+        if speed_before_crash > 6:
+            await wait_for_text("Next time,", scale=0.65, lineh=.7)
+            t = 'try'
+        else:
+            t = 'Always try'
+        await wait_for_text(t + " to slow down before", scale=0.65, lineh=.7)
+        await wait_for_text("any crashes, so you respawn", scale=0.65, lineh=.7)
+        await wait_for_text("faster.", scale=0.65, lineh=.7)
 
         #keypad.car = car
         #car.keypad = keypad

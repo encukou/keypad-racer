@@ -2,7 +2,7 @@ import struct
 import math
 
 from . import resources
-from .anim import AnimatedValue, ConstantValue
+from .anim import AnimatedValue, ConstantValue, Wait, Blocker, fork
 
 CAR_FORMAT = '=4h2e3e'
 STRIDE = struct.calcsize(CAR_FORMAT)
@@ -161,8 +161,16 @@ class Car:
         vx, vy = self.velocity
         vx += dx
         vy += dy
-        self.velocity = vx, vy
         new = x + vx, y + vy
+        destination = new
+        blocker = None
+        dest_t = 1
+        if not self.group.circuit.is_on_track(*new):
+            blocker = self.blocker_on_path_to(dx, dy)
+            if blocker:
+                dest_t = blocker[2]
+                respawn_pos = self.find_respawn_pos(blocker)
+        self.velocity = vx, vy
         buf = struct.pack(LINE_FORMAT, *new)
         self.history = [
             self.history[2],
@@ -182,11 +190,55 @@ class Car:
         else:
             duration /= 2
         self.dirty = True
-        self.anim_t = AnimatedValue(ConstantValue(0), 1, duration)
+        self.anim_t = AnimatedValue(ConstantValue(0), dest_t, duration*dest_t)
+        if not blocker:
+            waitblock = Wait(duration)
+        else:
+            waitblock = Blocker()
+            self.crashed = True
+            @fork
+            async def complete_move():
+                await Wait(duration*dest_t)
+                self.velocity = 0, 0
+                self._pos = self.last_pos = respawn_pos
+                self.history = [
+                    struct.pack(LINE_FORMAT, *self.pos)] * (HISTORY_SIZE+2)
+                self.dirty = True
+                self.view_rect = self.get_view_rect()
+                await Wait(duration*(1-dest_t))
+                await Wait(math.log(self.speed/3+1) + 0.5)
+                self.crashed = False
+                waitblock.unblock()
         self.view_rect = self.get_view_rect()
         if self.keypad:
-            self.keypad.pause(duration)
+            self.keypad.pause(waitblock)
         return duration
+
+    @property
+    def speed(self):
+        return math.sqrt(self.velocity[0]**2 + self.velocity[1]**2)
+
+    def find_respawn_pos(self, blocker):
+        bx, by, t = blocker
+        bx = round(bx)
+        by = round(by)
+        circuit = self.group.circuit
+        for i in range(100):
+            positions = [
+                *((bx+i, y) for y in range(by-i, by+i+1)),
+                *((bx-i, y) for y in range(by-i, by+i+1)),
+                *((x, by-i) for x in range(bx-i, bx+i+1)),
+                *((x, by+i) for x in range(bx-i, bx+i+1)),
+            ]
+            positions = [p for p in positions if circuit.is_on_track(*p)]
+            if positions:
+                return min(
+                    positions,
+                    key=lambda p: (p[0]-bx)**2 + (p[1]-by)**2,
+                )
+        # !?
+        print('No respawn point found...?!')
+        return bx, by
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
@@ -209,6 +261,11 @@ class Car:
             max(x, x1, x + dx, x - dx) + 5,
             max(y, y1, y + dy, y - dy) + 5,
         )
+
+    def blocker_on_direction(self, direction):
+        if (xy := ACTION_DIRECTIONS.get(direction)):
+            return self.blocker_on_path_to(*xy)
+        return None
 
     def blocker_on_path_to(self, x, y):
         crash_ts = []
