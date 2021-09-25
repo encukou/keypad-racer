@@ -47,10 +47,13 @@ Here's what it doesn't teach:
 * Keyboard mappings can be changed by HOLDING a button on the screen
   with a MOUSE, and pressing the desired key.
 
+* On the title screen, player color can be set using each player's
+  assigned keys.
+
 
 ## The controls
 
-Each player needs 9 keys, ideally in a grid.
+Each player needs 9 keys to play.
 The best way to play is on a grid – a numeric keypad:
 
     ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
@@ -82,8 +85,12 @@ share a keyboard -- there are enough keys for 3 people. By default they are:
 Thing will get quite crowded with 3 players, unless you plug in several
 keyboards. Be careful not to press another player's keys!
 
-(Note that on some systems there's significant lag when typing on several
-keyboards a once.)
+Note:
+* On some systems there's significant lag when typing on several
+  keyboards a once :(
+* Pressing e.g. shift might interfere with other player's controls
+* Some keyboards just don't handle multiple hands very well.
+  All part of the fun I guess.
 
 Hidden option: if you put `dvorak` in the `settings.conf` file,
 you'll start with a Dvorak keyboard layout.
