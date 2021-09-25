@@ -24,7 +24,7 @@ void main() {
     gl_FragColor = v_color;
     float sdf = sdTrapezoid(v_uv, 0.60, 0.43, 0.9);
     if (sdf < 0) {
-        gl_FragColor = vec4(1.0, v_color.yz, 1.0);
+        gl_FragColor = vec4(v_color.xyz, 1.0);
         return;
     }
     float aa = 3 * gridlines_per_px();

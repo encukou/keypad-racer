@@ -1,5 +1,6 @@
 import os
 from pathlib import PurePosixPath
+import atexit
 try:
     import importlib_resources
 except ImportError:
@@ -14,6 +15,15 @@ def get_text(name):
 
 def open(name, *args, **kwargs):
     return resource.joinpath(name).open(*args, **kwargs)
+
+def path(name, *args, **kwargs):
+    return resource.joinpath(name).path()
+
+def global_fspath(name):
+    as_file = importlib_resources.as_file(resource.joinpath(name))
+    path = as_file.__enter__()
+    atexit.register(lambda: path.__exit__(None, None, None))
+    return path
 
 def get_shader(name):
     path = PurePosixPath(name)

@@ -35,7 +35,6 @@ class KeypadScene(Scene):
         view.set_view_rect((x-2, y-3, x+2, y+3))
         self.keypad.draw(view)
         if self.caption != self.keypad.player_name:
-            print(self.keypad.player_name)
             self.caption = self.keypad.player_name
             if self.caption:
                 self.text = Text(self.keypad.ctx, self.caption, scale=0.5)

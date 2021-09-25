@@ -48,7 +48,7 @@ class TitleTop(Scene):
 
 class TitleBottom(KeypadScene):
     pin_side = 'bottom'
-    def __init__(self, ctx, window, kbd, circuit):
+    def __init__(self, ctx, window, kbd, circuit, conf=''):
         keypad = Keypad(ctx, color=(.9, .9, .9))
         super().__init__(keypad, kbd)
         self.kbd = kbd
@@ -85,10 +85,10 @@ class TitleBottom(KeypadScene):
             5: keyboard.QWERTY_LAYOUTS,
             8: keyboard.NUMPAD_LAYOUTS,
         }
-        if 'DVORAK' in os.environ:
+        if 'dvorak' in conf.lower():
             self.addplayers[2] = keyboard.DVORAK_LAYOUTS
             self.captions[2] = Caption(ctx, keypad, 2,
-                                       '{}: Add Player (Dvorak)', ''),
+                                       '{}: Add Player (Dvorak)', '')
             kbd.claim_key(pyglet.window.key.O, keypad, 2)
         else:
             keypad.xblocked[2] = 1
@@ -104,6 +104,13 @@ class TitleBottom(KeypadScene):
         kbd.attach_remap_watcher(self, self.remap_watcher)
 
         self.update()
+
+        if 'numpad' in conf.lower():
+            self.add_player(-1, keyboard.NUMPAD_LAYOUTS)
+        elif 'dvorak' in conf.lower():
+            self.add_player(-1, keyboard.DVORAK_LAYOUTS)
+        else:
+            self.add_player(-1, keyboard.QWERTY_LAYOUTS)
 
     def draw(self, view):
         max_size = max(c.size for c in self.captions.values())

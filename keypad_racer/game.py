@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pyglet
 
 from .window import Window
@@ -11,6 +13,7 @@ from .circuit import Circuit
 from .tutorial import tutorial
 from .anim import fork, Wait
 from .title import TitleTop, TitleBottom
+#from . import music
 
 palette = Palette()
 kbd = Keyboard()
@@ -18,41 +21,10 @@ kbd = Keyboard()
 window = Window(kbd)
 ctx = window.ctx
 
-if False:
-    tutorial(ctx, palette, kbd, window)
-elif False:
-    circuit = Circuit(ctx, 'okruh.png')
-    cars = CarGroup(ctx, circuit)
-
-    car = Car(cars, palette.player_color(0), (0, 0))
-    keypad = Keypad(ctx, car)
-    keypad.claim_layout(kbd, NUMPAD_LAYOUT)
-    scene = CarScene(car, keypad)
-    window.add_view(View(ctx, scene))
-elif False:
-    keypad = Keypad(ctx)
-    scene = KeypadScene(keypad, kbd)
-    window.add_view(View(ctx, scene))
-    keypad = Keypad(ctx)
-    scene = KeypadScene(keypad, kbd)
-    window.add_view(View(ctx, scene))
-elif False:
-    circuit = Circuit(ctx, 'okruh.png')
-    cars = CarGroup(ctx, circuit)
-    @fork
-    async def add_cars():
-        for i, layout in enumerate((NUMPAD_LAYOUT, QWERTY_LAYOUT, DVORAK_LAYOUT)):
-            car = Car(cars, palette.player_color(i), (i, 0))
-            keypad = Keypad(ctx, car)
-            keypad.claim_layout(kbd, layout)
-            scene = CarScene(car, keypad)
-            window.add_view(View(ctx, scene))
-else:
-    circuit = Circuit(ctx, 'okruh.png')
-    scene = TitleTop(ctx, window, kbd)
-    window.add_view(View(ctx, scene))
-    scene = TitleBottom(ctx, window, kbd, circuit)  # this has titlescreen logic :/
-    window.add_view(View(ctx, scene))
+# Couldn't get music to work. These tracks would work great:
+# - menu: https://opengameart.org/content/arcade-racing-tune
+# - game: https://opengameart.org/content/tactical-pursuit
+#music.play(music.menu_music)
 
 def global_key_event(action, is_pressed):
     if action == 'fullscreen' and is_pressed:
@@ -61,7 +33,17 @@ def global_key_event(action, is_pressed):
         else:
             window.fullscreen = True
 
-kbd.attach_handler(global_key_event)
+try:
+    conf = Path('settings.conf').read_text()
+except FileNotFoundError:
+    kbd.attach_handler(global_key_event)
+    tutorial(ctx, palette, kbd, window)
+else:
+    circuit = Circuit(ctx, 'okruh.png')
+    scene = TitleTop(ctx, window, kbd)
+    window.add_view(View(ctx, scene))
+    scene = TitleBottom(ctx, window, kbd, circuit, conf)  # this has titlescreen logic :/
+    window.add_view(View(ctx, scene))
 
 def run():
     pyglet.clock.schedule_interval(id, 1/60)

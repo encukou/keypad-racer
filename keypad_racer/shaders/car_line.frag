@@ -22,10 +22,8 @@ void main() {
     vec4 g_color = gradient_palette(color.xyz, (g_t+1-color.w-d/5)/5);
     float thickness = g_thickness;
     gl_FragColor = g_color;
-    gl_FragColor.r = d / 10;
     if (d < thickness) {
         gl_FragColor = g_color;
-        gl_FragColor.r = 1.0;
         return;
     }
     d -= thickness;

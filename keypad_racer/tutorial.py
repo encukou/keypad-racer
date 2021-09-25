@@ -1,4 +1,5 @@
 from functools import partial
+import os
 
 from .car import CarGroup, Car
 from .circuit import Circuit
@@ -16,17 +17,17 @@ def animN(src, dest, *args, **kwargs):
         for a, b in zip(src, dest)
     )
 
-def tutorial(ctx, palette, kbd, window):
+def tutorial(ctx, palette, kbd, window, end_callback=None):
     circuit = Circuit(ctx, 'okruh.png')
     cars = CarGroup(ctx, circuit)
 
     car = Car(cars, palette.player_color(0), (0, 0))
-    car.move(0, -1)
-    car.move(0, -1)
-    car.move(0, 0)
-    car.move(0, 1)
-    car.move(0, 1)
-    car.move(0, -1)
+    car.move(0, -1, sound=False)
+    car.move(0, -1, sound=False)
+    car.move(0, 0, sound=False)
+    car.move(0, 1, sound=False)
+    car.move(0, 1, sound=False)
+    car.move(0, -1, sound=False)
     print(car.pos, car.velocity)
     for i in range(10):
         car.move(0, 0)
@@ -43,10 +44,12 @@ def tutorial(ctx, palette, kbd, window):
             keypad_block[button] = 0
         keypad.blocked = tuple(keypad_block)
     unblock_keypad()
+    keypad.pos = 0, -9
 
     car_scene = TutorialCarScene(car, keypad)
     car_scene_view = View(ctx, car_scene)
     window.add_view(car_scene_view)
+    unblock_keypad()
 
     scene = TutorialScene()
     scene_view = View(ctx, scene)
@@ -59,7 +62,7 @@ def tutorial(ctx, palette, kbd, window):
     text.outline_color = animN(text.outline_color, (1, 1, 1, 0), 1, sine_in)
 
     speedscale = 1
-    autoplay = True
+    autoplay = 'GAMEDEV_AUTOPLAY' in os.environ
     if autoplay:
         speedscale = 10
     ypos = -2.25
@@ -279,35 +282,15 @@ def tutorial(ctx, palette, kbd, window):
         await wait_for_text("faster.", scale=0.65, lineh=1)
 
         await wait_for_text("But now, drive on!", scale=0.65, lineh=1)
-        if layout is NUMPAD_LAYOUT:
-            await wait_for_text("Whenever you want to", scale=0.65, lineh=.7)
-            await wait_for_text("continue the tutorial,", scale=0.65, lineh=.7)
-            await wait_for_text("crash again.", scale=0.65, lineh=.7)
-        else:
-            await wait_for_text("The controls are based", scale=0.65, lineh=.7)
-            await wait_for_text("on a QWERTY keyboard.", scale=0.65, lineh=.7)
-            await wait_for_text("You can change them;", scale=0.65, lineh=.7)
-            await wait_for_text("crash again to see how.", scale=0.65, lineh=.7)
 
-        await blocker
+        with open('settings.conf', 'w') as f:
+            if layout is NUMPAD_LAYOUT:
+                f.write('numpad')
+            else:
+                f.write('qwerty')
 
-        await next_page()
-
-        kp_scene = KeypadScene(keypad, kbd)
-        kp_view = View(ctx, kp_scene)
-        window.remove_view(car_scene_view)
-        window.add_view(kp_view)
-        keypad.car = None
-        keypad.pos = 0, 0
-        unblock_keypad(allow=True)
-
-        await wait_for_text("Before you start a game,", scale=0.65, lineh=.7)
-        await wait_for_text("you'll get a chance to", scale=0.65, lineh=.7)
-        await wait_for_text("change the controls.", scale=0.65, lineh=1)
-        await wait_for_text("Press the button to change", scale=0.65, lineh=.7)
-        await wait_for_text("with your mouse,", scale=0.65, lineh=.7)
-        await wait_for_text("then press the key", scale=0.65, lineh=.7)
-        await wait_for_text("you'd like to use.", scale=0.65, lineh=1)
+        await wait_for_text("Or restart the game", scale=0.65, lineh=.65)
+        await wait_for_text("for a multiplayer game.", scale=0.65, lineh=.65)
 
 class TutorialScene(Scene):
     default_projection = 0, 0, 10, 0

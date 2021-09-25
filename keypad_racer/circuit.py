@@ -109,7 +109,6 @@ class Circuit:
         if not sum(self.get_pixel(x, y)):
             return False
         for car in self.cars:
-            print(car.pos, car.anim_t)
             if car.pos == (x, y) and float(car.anim_t) > 0.99:
                 return False
         return True

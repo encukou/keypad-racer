@@ -1,6 +1,8 @@
 import struct
 import math
 
+import pyglet
+
 from . import resources
 from .anim import AnimatedValue, ConstantValue, Wait, Blocker, fork
 
@@ -22,6 +24,8 @@ ACTION_DIRECTIONS = {
     7: ( 0, +1),
     8: (+1, +1),
 }
+
+explode_sound = pyglet.media.load(resources.global_fspath('sound/acid6.wav'))
 
 class CarGroup:
     def __init__(self, ctx, circuit, max_cars=9):
@@ -156,7 +160,7 @@ class Car:
     @property
     def pos(self):
         return self._pos
-    def move(self, dx, dy):
+    def move(self, dx, dy, sound=True):
         duration = 0.5
         self.last_orientation = self._orientation
         x, y = self.last_pos = self.pos
@@ -167,7 +171,7 @@ class Car:
         destination = new
         blocker = None
         dest_t = 1
-        if not self.group.circuit.is_on_track(*new):
+        if (vx or vy) and not self.group.circuit.is_on_track(*new):
             blocker = self.blocker_on_path_to(dx, dy)
             if blocker:
                 dest_t = blocker[2]
@@ -193,6 +197,8 @@ class Car:
             duration /= 2
         self.dirty = True
         self.anim_t = AnimatedValue(ConstantValue(0), dest_t, duration*dest_t)
+        if sound:
+            self.play_sounds(vx, vy, duration, dest_t, crash=bool(blocker))
         if not blocker:
             waitblock = Wait(duration)
         else:
@@ -217,6 +223,30 @@ class Car:
         if self.keypad:
             self.keypad.pause(waitblock)
         return duration
+
+    def play_sounds(self, vx, vy, duration, dest_t, crash=False):
+        best = max(abs(vx), abs(vy))
+        if best <= 0:
+            return
+        interval = duration / best
+        envelope = pyglet.media.synthesis.ADSREnvelope(
+            interval/8, interval/4, interval/2,
+        )
+        envelope = pyglet.media.synthesis.LinearDecayEnvelope()
+        instrument = pyglet.media.synthesis.Sawtooth
+        for i in range(1, best+1):
+            t = i * interval
+            if t >= dest_t:
+                break
+            frequency = 220*((i+1)**(1.0594**1/4))
+            sound = instrument(duration=interval/2, frequency=frequency, envelope=envelope)
+            def _play(dt, sound=sound):
+                sound.play()
+            pyglet.clock.schedule_once(_play, t*duration)
+        if crash:
+            def _play(dt):
+                explode_sound.play()
+            pyglet.clock.schedule_once(_play, dest_t*duration)
 
     @property
     def speed(self):
