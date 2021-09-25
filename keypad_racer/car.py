@@ -224,7 +224,7 @@ class Car:
                         rot_speed *= 0.99
                         await Wait(1/60)
                 await Wait(duration*(1-dest_t))
-                await Wait(math.log(self.speed*3+1) + 1.5)
+                await Wait(self.speed * 1.5 + 2)
                 self.crashed = False
                 waitblock.unblock()
         self.view_rect = self.get_view_rect()
