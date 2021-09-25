@@ -134,15 +134,23 @@ class Keypad:
         ))
 
     def set_decal(self, button, char):
-        self.font = get_font(self.ctx)
-        glyph = self.font.get_glyph(char, fallback='☼')
-        if glyph is None:
-            data = bytes(14)
+        if char.startswith(' '):
+            char = char[1:]
+        if char.endswith(' '):
+            char = char[:-1]
+        print(repr(char))
+        if not char:
+            data = bytes(12)
         else:
-            data = struct.pack(
-                '=4e3e',
-                *glyph.atlas_bounds,
-                *glyph.plane_bounds[1:],
-            )
+            self.font = get_font(self.ctx)
+            glyph = self.font.get_glyph(char, fallback='☼')
+            if glyph is None:
+                data = bytes(14)
+            else:
+                data = struct.pack(
+                    '=4e3e',
+                    *glyph.atlas_bounds,
+                    *glyph.plane_bounds[1:],
+                )
         for i in range(6):
             self.kp_vbo.write(data, offset=24*(i+6*button)+10)

@@ -43,7 +43,7 @@ class View:
     def viewport(self, res):
         self._viewport = res
         self.last_view_rect = None
-        self.adjust_scale()
+        self.adjust_zoom()
 
     def set_view_rect(self, view_rect, duration=None):
         if view_rect != self.last_view_rect:
@@ -79,17 +79,18 @@ class View:
         self._params = self._params._replace(scale_x=scale, scale_y=scale)
 
     def adjust_zoom(self, dz=0):
-        self.zoom = AnimatedValue(self.zoom, self.zoom.end * 1.1**dz, 0.1)
-
-    def adjust_scale(self, dz=0):
         if self.scene.fixed_projection:
             return
-        self.zoom = AnimatedValue(self.zoom, self.zoom.end * 1.1**dz, 0.2)
+        self.zoom = AnimatedValue(self.zoom, self.zoom.end * 1.1**dz, 0.1)
 
-    def adjust_pan(self, dx, dy):
+    def adjust_pan(self, dx, dy, duration=0.1):
+        if self.scene.fixed_projection:
+            return
+        dx *= self.scale[0].end*self.zoom.end/self.viewport[2]*2
+        dy *= self.scale[1].end*self.zoom.end/self.viewport[3]*2
         self.pan = (
-            AnimatedValue(self.pan[0], self.pan[0].end + dx, 0.1),
-            AnimatedValue(self.pan[1], self.pan[1].end + dy, 0.1),
+            AnimatedValue(self.pan[0], self.pan[0].end - dx, duration),
+            AnimatedValue(self.pan[1], self.pan[1].end - dy, duration),
         )
 
     def setup(self, *programs):
@@ -106,10 +107,21 @@ class View:
             program['projection_params'] = params
 
     def hit_test(self, x, y):
+        x, y = self.screen_to_view(x, y)
+        return -1 <= x <= 1 and -1 <= y <= 1
+
+    def screen_to_view(self, x, y):
         x1, y1, w, h = self._viewport
-        x2 = x1 + w
-        y2 = y1 + h
-        return x1 <= x <= x2 and y1 <= y <= y2
+        return ((x - x1) / w * 2 - 1, (y - y1) / h * 2 - 1)
+
+    def view_to_grid(self, x, y):
+        xs, ys, xz, yz = self._params
+        return (
+            x * xz.end + xs.end,
+            y * yz.end + ys.end,
+        )
+    def screen_to_grid(self, x, y):
+        return self.view_to_grid(*self.screen_to_view(x, y))
 
     def draw(self):
         self.scene.draw(self)

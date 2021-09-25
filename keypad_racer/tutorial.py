@@ -16,7 +16,7 @@ def animN(src, dest, *args, **kwargs):
         for a, b in zip(src, dest)
     )
 
-def tutorial(ctx, palette, kbd):
+def tutorial(ctx, palette, kbd, window):
     circuit = Circuit(ctx, 'okruh.png')
     cars = CarGroup(ctx, circuit)
 
@@ -45,10 +45,12 @@ def tutorial(ctx, palette, kbd):
     unblock_keypad()
 
     car_scene = TutorialCarScene(car, keypad)
-    yield car_scene
+    car_scene_view = View(ctx, car_scene)
+    window.add_view(car_scene_view)
 
     scene = TutorialScene()
-    yield scene
+    scene_view = View(ctx, scene)
+    window.add_view(scene_view)
 
     text = Text(car.group.ctx, 'Welcome to\nKeypad Racer!', ypos=1, outline=True)
     scene.things.append(text)
@@ -56,7 +58,7 @@ def tutorial(ctx, palette, kbd):
     text.body_color = animN(text.body_color, (1, 1, 1, 1), 2, sine_in)
     text.outline_color = animN(text.outline_color, (1, 1, 1, 0), 1, sine_in)
 
-    speedscale = 1
+    speedscale = 10
     ypos = -2.25
 
     async def wait_for_text(text, delay=0.25, lineh=None, **kwargs):
@@ -248,7 +250,11 @@ def tutorial(ctx, palette, kbd):
             keypad.set_callback(n, None)
         keypad.update()
 
+        blocker = Blocker()
+        car.crash_callback = blocker.unblock
+
         await next_scene()
+        ypos += 2
 
         await wait_for_text("Whoops! You crashed!", scale=0.65, lineh=1)
         await wait_for_text("Don't feel bad: this", scale=0.65, lineh=.7)
@@ -260,13 +266,22 @@ def tutorial(ctx, palette, kbd):
             t = 'Always try'
         await wait_for_text(t + " to slow down before", scale=0.65, lineh=.7)
         await wait_for_text("any crashes, so you respawn", scale=0.65, lineh=.7)
-        await wait_for_text("faster.", scale=0.65, lineh=.7)
+        await wait_for_text("faster.", scale=0.65, lineh=1)
 
-        #keypad.car = car
-        #car.keypad = keypad
-        #keypad.update()
+        await wait_for_text("Drive on!", scale=0.65, lineh=1)
+        if layout is NUMPAD_LAYOUT:
+            await wait_for_text("Whenever you want to", scale=0.65, lineh=.7)
+            await wait_for_text("continue the tutorial,", scale=0.65, lineh=.7)
+            await wait_for_text("crash again.", scale=0.65, lineh=.7)
+        else:
+            await wait_for_text("The controls are based", scale=0.65, lineh=.7)
+            await wait_for_text("on a QWERTY keyboard.", scale=0.65, lineh=.7)
+            await wait_for_text("You can change them;", scale=0.65, lineh=.7)
+            await wait_for_text("crash again to see how.", scale=0.65, lineh=.7)
 
+        await blocker
 
+        await next_scene()
 
 class TutorialScene(Scene):
     default_projection = 0, 0, 10, 0

@@ -70,6 +70,8 @@ class Window:
         wnd.event(self.on_mouse_scroll)
         wnd.event(self.on_mouse_press)
         wnd.event(self.on_mouse_drag)
+        wnd.event(self.on_mouse_motion)
+        wnd.event(self.on_mouse_release)
         wnd.event(self.on_resize)
 
         kbd.attach_to_window(wnd)
@@ -98,19 +100,37 @@ class Window:
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         view = self.view_for_point(x, y)
         if view:
+            #width = self.pyglet_window.width
+            #height = self.pyglet_window.height
+            #view.adjust_pan(x - view.width/2, y - view.height/2)
             view.adjust_zoom(scroll_y)
 
     def on_mouse_press(self, x, y, button, mod):
-        self.dragged_view = self.view_for_point(x, y)
+        view = self.view_for_point(x, y)
+        if view:
+            if not view.scene.fixed_projection:
+                self.dragged_view = view
+            if view.scene.get_mouse_events:
+                view.scene.on_mouse_press(*view.screen_to_grid(x, y), button)
+
+    def on_mouse_release(self, x, y, button, mod):
+        view = self.dragged_view or self.view_for_point(x, y)
+        if view:
+            if view.scene.get_mouse_events:
+                view.scene.on_mouse_release(*view.screen_to_grid(x, y), button)
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, mod):
         view = self.dragged_view or self.view_for_point(x, y)
-        width = self.pyglet_window.width
         if view:
-            view.adjust_pan(
-                -dx*view.scale[0].end/view.viewport[2]*2,
-                -dy*view.scale[1].end/view.viewport[3]*2,
-            )
+            view.adjust_pan(dx, dy)
+            if view.scene.get_mouse_events:
+                view.scene.on_mouse_move(*view.screen_to_grid(x, y), buttons)
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        view = self.view_for_point(x, y)
+        if view:
+            if view.scene.get_mouse_events:
+                view.scene.on_mouse_move(*view.screen_to_grid(x, y), 0)
 
     def view_for_point(self, x, y):
         for view in self.views:
@@ -128,6 +148,13 @@ class Window:
 
     def add_view(self, view):
         self.views.append(view)
+        self.on_resize(self.pyglet_window.width, self.pyglet_window.height)
+
+    def remove_view(self, view):
+        try:
+            self.views.remove(view)
+        except ValueError:
+            pass
         self.on_resize(self.pyglet_window.width, self.pyglet_window.height)
 
     @property

@@ -123,6 +123,7 @@ class Car:
         self.view_rect = self.get_view_rect()
         self.keypad = None
         self.is_crashed = False
+        self.crash_callback = None
 
     def update_group(self):
         if not self.dirty:
@@ -196,6 +197,8 @@ class Car:
         else:
             waitblock = Blocker()
             self.crashed = True
+            if self.crash_callback:
+                self.crash_callback()
             @fork
             async def complete_move():
                 await Wait(duration*dest_t)

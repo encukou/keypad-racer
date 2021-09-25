@@ -1,4 +1,5 @@
 import pyglet
+import weakref
 
 QWERTY_LAYOUT = (
     pyglet.window.key.Z,
@@ -76,6 +77,7 @@ class Keyboard:
         self.mapping = {
             pyglet.window.key.F11: (None, 'fullscreen')
         }
+        self.remappers = weakref.WeakKeyDictionary()
         self.global_handlers = []
         #self.load_mapping(DEFAULT_MAP)
         #self.pads = {}
@@ -84,40 +86,60 @@ class Keyboard:
         window.event(self.on_key_press)
         window.event(self.on_key_release)
 
-    def claim_key(self, key, keypad, button, previous_key=None):
+    def attach_remapper(self, remapper, func):
+        self.remappers[remapper] = func
+
+    def claim_key(self, key, keypad, button):
+        print(key, 'claim')
         if key in self.mapping:
-            prev_keypad, prev_button = self.mapping.get(previous_key, (None, None))
+            prev_keypad, prev_button = self.mapping[key]
             if prev_keypad:
-                self.mapping[previous_key] = prev_keypad, prev_button
-                prev_decal = keyname(previous_key)
-                prev_keypad.set_decal(prev_button, prev_decal)
-            else:
-                del self.mapping[key]
-                #prev_keypad.set_decal(prev_button, ' ')
+                # Search for a "prevkey" that was previously assigned
+                # to (keypad, button).
+                for prevkey, (kp, bt) in self.mapping.items():
+                    if kp == keypad and bt == button:
+                        # Found -> give this key to the keypad we're
+                        # stealing from!
+                        self.mapping[prevkey] = prev_keypad, prev_button
+                        prev_keypad.set_decal(prev_button, keyname(prevkey))
+                        break
+                else:
+                    prev_keypad.set_decal(prev_button, ' ')
         self.mapping[key] = keypad, button
         keypad.set_decal(button, keyname(key))
 
     def on_key_press(self, key, mod):
-        self.key_state_changed(key, mod, True)
+        return self.key_state_changed(key, mod, True)
 
     def on_key_release(self, key, mod):
-        self.key_state_changed(key, mod, False)
+        return self.key_state_changed(key, mod, False)
 
     def key_state_changed(self, key, mod, is_pressed):
+        print(self.remappers)
+        for remapper in self.remappers:
+            if self.remappers[remapper](key, is_pressed):
+                return True
         action = self.mapping.get(key)
         if action:
             keypad, button = action
             if keypad:
                 keypad.kbd(button, is_pressed)
+                return True
             else:
                 for handler in self.global_handlers:
                     handler(button, is_pressed)
+                return True
 
     def attach_handler(self, handler):
         self.global_handlers.append(handler)
 
 def keyname(key):
-    return KEYNAMES.get(key, DEFAULT_DECAL)
+    name = KEYNAMES.get(key)
+    if name is None:
+        print(f'Unknown key {key}; using default symbol')
+        name = DEFAULT_DECAL
+        KEYNAMES[key] = name
+    return name
 
 if __name__ == '__main__':
     # Generate the skeleton for the keynames:
@@ -161,7 +183,7 @@ KEYNAMES = {getattr(pyglet.window.key, name):label for name, label in {
     'ESCAPE': '☒',
     'EXCLAMATION': '!',
     #'EXECUTE': '',
-    'F': '◇',
+    'F': 'F',
     'F1': '①',
     'F10': '⑩',
     'F11': '⑪',
@@ -183,7 +205,7 @@ KEYNAMES = {getattr(pyglet.window.key, name):label for name, label in {
     'F8': '⑧',
     'F9': '⑨',
     #'FIND': '',
-    'FUNCTION': '☼',
+    'FUNCTION': '◇',
     'G': 'G',
     'GRAVE': '`',
     'GREATER': '>',
@@ -249,7 +271,7 @@ KEYNAMES = {getattr(pyglet.window.key, name):label for name, label in {
     'NUM_SUBTRACT': '-',
     'NUM_TAB': '↹',
     'NUM_UP': '↑',
-    'O': 'P',
+    'O': 'O',
     'P': 'P',
     'PAGEDOWN': '▼',
     'PAGEUP': '▲',

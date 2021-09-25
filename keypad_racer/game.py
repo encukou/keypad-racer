@@ -2,7 +2,7 @@ import pyglet
 
 from .window import Window
 from .view import View
-from .scene import CarScene
+from .scene import CarScene, KeypadScene
 from .car import CarGroup, Car
 from .palette import Palette
 from .keyboard import Keyboard, QWERTY_LAYOUT, NUMPAD_LAYOUT
@@ -16,10 +16,9 @@ kbd = Keyboard()
 window = Window(kbd)
 ctx = window.ctx
 
-if True:
-    for scene in tutorial(ctx, palette, kbd):
-        window.add_view(View(ctx, scene))
-else:
+if False:
+    tutorial(ctx, palette, kbd, window)
+elif False:
     circuit = Circuit(ctx, 'okruh.png')
     cars = CarGroup(ctx, circuit)
 
@@ -27,6 +26,13 @@ else:
     keypad = Keypad(ctx, car)
     keypad.claim_layout(kbd, NUMPAD_LAYOUT)
     scene = CarScene(car, keypad)
+    window.add_view(View(ctx, scene))
+else:
+    keypad = Keypad(ctx)
+    scene = KeypadScene(keypad, kbd)
+    window.add_view(View(ctx, scene))
+    keypad = Keypad(ctx)
+    scene = KeypadScene(keypad, kbd)
     window.add_view(View(ctx, scene))
 
 
