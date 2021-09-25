@@ -26,7 +26,7 @@ ACTION_DIRECTIONS = {
     8: (+1, +1),
 }
 
-explode_sound = pyglet.media.load(resources.global_fspath('sound/acid6.wav'))
+explode_sound = pyglet.media.load(resources.global_fspath('sound/acid6.wav'), streaming=False)
 
 class CarGroup:
     def __init__(self, ctx, circuit, max_cars=9):
@@ -233,6 +233,7 @@ class Car:
         return duration
 
     def play_sounds(self, vx, vy, duration, dest_t, crash=False):
+      try:
         best = max(abs(vx), abs(vy))
         if best <= 0:
             return
@@ -255,6 +256,9 @@ class Car:
             def _play(dt):
                 explode_sound.play()
             pyglet.clock.schedule_once(_play, dest_t*duration)
+      except Exception:
+          # XXX
+          pass
 
     @property
     def speed(self):
