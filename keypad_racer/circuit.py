@@ -11,6 +11,7 @@ from . import resources
 class Circuit:
     def __init__(self, ctx, path):
         self.ctx = ctx
+        self.cars = []
         path = Path(path).resolve()
         intersection_data = bytearray()
         with path.open('rb') as f:
@@ -105,7 +106,13 @@ class Circuit:
         return b'\0\0\0\0'
 
     def is_on_track(self, x, y):
-        return sum(self.get_pixel(x, y))
+        if not sum(self.get_pixel(x, y)):
+            return False
+        for car in self.cars:
+            print(car.pos, car.anim_t)
+            if car.pos == (x, y) and float(car.anim_t) > 0.99:
+                return False
+        return True
 
     def y_intersection_passable(self, x, y):
         y0 = math.floor(y)

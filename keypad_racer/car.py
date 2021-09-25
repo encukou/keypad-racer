@@ -124,6 +124,7 @@ class Car:
         self.keypad = None
         self.is_crashed = False
         self.crash_callback = None
+        self.group.circuit.cars.append(self)
 
     def update_group(self):
         if not self.dirty:
