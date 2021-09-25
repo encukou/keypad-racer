@@ -1,6 +1,13 @@
 # Keypad Racer
 
-An entry for PyWeek 32
+An game for [PyWeek 32].
+
+*The racetrack loops: it is **neverending**.*
+
+This turn-based racing game is a recreation of a pen-and-paper game
+I enjoyed back at school.
+
+[PyWeek 32]: https://pyweek.org/32/
 
 
 ## Requirements
@@ -12,12 +19,33 @@ The game needs:
 * `pyglet`, for creating a window and handling events
 * `pypng`, for reading images
 
-Install these requirements using:
+Install these requirements (preverably in a virtual environment) using:
 
     $ python -m pip install -r requirements.txt
 
 (Compiled wheels for the dependencies should be available for Linux, Windows
 and Mac; on other platforms you'll probably need a compiler and headers.)
+
+
+## Running the game
+
+Run the game with the traditional PyWeek command:
+
+    $ python game.py
+
+The game will save a file called `keypad_racer.conf` into the
+current directory.
+(You can remove it to run the tutorial again.)
+
+
+## Gameplay
+
+The game starts with a tutorial – go through it!
+
+Here's what it doesn't teach:
+
+* Keyboard mappings can be changed by HOLDING a button on the screen
+  with a MOUSE, and pressing the desired key.
 
 
 ## The controls
@@ -57,6 +85,9 @@ keyboards. Be careful not to press another player's keys!
 (Note that on some systems there's significant lag when typing on several
 keyboards a once.)
 
+Hidden option: if you put `dvorak` in the `settings.conf` file,
+you'll start with a Dvorak keyboard layout.
+
 
 ## What's there to see
 
@@ -69,16 +100,19 @@ The racetrack loops, so it is **neverending** ;)
 TL;DR:
 
 * This Game: Petr Viktorin
+* Crash sound by Michel Baradari
 * Fonts:
   * [Gemunu Libre] by *mooniak*.
   * Additional symbols from [M PLUS 1p] by Coji Morishita & M+ Fonts Project
 * MSDF font generator: [msdfgen] by Viktor Chlumský
-* Crash sound by Michel Baradari
+* The racetrack is based on [Masaryk circuit], a racetrack in my home town.
 * Shader ideas and snippets:
   * Nicolas P. Rougier
   * Íñigo Quílez
 
 Long story:
+
+### Game
 
 The code is available under this MIT licence:
 
@@ -90,11 +124,23 @@ The code is available under this MIT licence:
 >
 > THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+### Sound
+
 The crash sound is from *9 sci-fi computer sounds and beeps*
 by Michel Baradari, used under the [CC-BY 3.0] lcense.
 
 [beeps]: https://opengameart.org/content/9-sci-fi-computer-sounds-and-beeps
 [CC-BY 3.0]: https://creativecommons.org/licenses/by/3.0/
+
+### Racetrack
+
+The racetrack is based (maybe too closely) on the [Masaryk circuit],
+a racetrack in my home town.
+
+[Masaryk circuit]: https://en.wikipedia.org/wiki/Brno_Circuit
+
+
+### Font
 
 The font used is [Gemunu Libre] by *mooniak*.
 
@@ -111,6 +157,8 @@ font files aren't used in the game).
 The font was preprocessed with [msdfgen] by Viktor Chlumský.
 
 [msdfgen]: https://github.com/Chlumsky/msdfgen
+
+### Shaders
 
 The game incorporates several techniques and code examples from
 Nicolas P. Rougier's book *Python & OpenGL for Scientific Visualization*,

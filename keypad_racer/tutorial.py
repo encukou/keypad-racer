@@ -247,6 +247,7 @@ def tutorial(ctx, palette, kbd, window, end_callback=None):
             if car.blocker_on_direction(n):
                 keypad.car = car
                 car.keypad = keypad
+                keypad.update()
                 car.act(n)
                 car_scene.follow_car = True
                 blocker.unblock()
@@ -283,14 +284,14 @@ def tutorial(ctx, palette, kbd, window, end_callback=None):
 
         await wait_for_text("But now, drive on!", scale=0.65, lineh=1)
 
-        with open('settings.conf', 'w') as f:
+        with open('keypad_racer.conf', 'w') as f:
             if layout is NUMPAD_LAYOUT:
                 f.write('numpad')
             else:
                 f.write('qwerty')
 
         await wait_for_text("Or restart the game", scale=0.65, lineh=.65)
-        await wait_for_text("for a multiplayer game.", scale=0.65, lineh=.65)
+        await wait_for_text("for a multiplayer race!", scale=0.65, lineh=.65)
 
 class TutorialScene(Scene):
     default_projection = 0, 0, 10, 0

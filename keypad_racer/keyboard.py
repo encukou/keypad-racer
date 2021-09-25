@@ -49,20 +49,6 @@ DVORAK_LAYOUT = (
 QWERTY_LAYOUTS = (
     QWERTY_LAYOUT,
     (
-        pyglet.window.key.B,
-        pyglet.window.key.N,
-        pyglet.window.key.M,
-        pyglet.window.key.G,
-        pyglet.window.key.H,
-        pyglet.window.key.J,
-        pyglet.window.key.T,
-        pyglet.window.key.Y,
-        pyglet.window.key.U,
-        pyglet.window.key._5,
-        pyglet.window.key._6,
-        pyglet.window.key._7,
-    )[:9],
-    (
         pyglet.window.key.PERIOD,
         pyglet.window.key.SLASH,
         pyglet.window.key.RSHIFT,
@@ -76,26 +62,26 @@ QWERTY_LAYOUTS = (
         pyglet.window.key._0,
         pyglet.window.key.MINUS,
     )[:9],
+    (
+        pyglet.window.key.B,
+        pyglet.window.key.N,
+        pyglet.window.key.M,
+        pyglet.window.key.G,
+        pyglet.window.key.H,
+        pyglet.window.key.J,
+        pyglet.window.key.T,
+        pyglet.window.key.Y,
+        pyglet.window.key.U,
+        pyglet.window.key._5,
+        pyglet.window.key._6,
+        pyglet.window.key._7,
+    )[:9],
 )
 NUMPAD_LAYOUTS = (
     NUMPAD_LAYOUT,
 )
 DVORAK_LAYOUTS = (
     DVORAK_LAYOUT,
-    (
-        pyglet.window.key.X,
-        pyglet.window.key.B,
-        pyglet.window.key.M,
-        pyglet.window.key.I,
-        pyglet.window.key.D,
-        pyglet.window.key.H,
-        pyglet.window.key.Y,
-        pyglet.window.key.F,
-        pyglet.window.key.G,
-        pyglet.window.key._6,
-        pyglet.window.key._7,
-        pyglet.window.key._8,
-    )[:9],
     (
         pyglet.window.key.V,
         pyglet.window.key.Z,
@@ -109,6 +95,20 @@ DVORAK_LAYOUTS = (
         pyglet.window.key._9,
         pyglet.window.key._0,
         pyglet.window.key.BRACKETRIGHT,
+    )[:9],
+    (
+        pyglet.window.key.X,
+        pyglet.window.key.B,
+        pyglet.window.key.M,
+        pyglet.window.key.I,
+        pyglet.window.key.D,
+        pyglet.window.key.H,
+        pyglet.window.key.Y,
+        pyglet.window.key.F,
+        pyglet.window.key.G,
+        pyglet.window.key._6,
+        pyglet.window.key._7,
+        pyglet.window.key._8,
     )[:9],
 )
 
@@ -186,6 +186,8 @@ class Keyboard:
         self.global_handlers.append(handler)
 
 def keyname(key):
+    if key is None:
+        return ''
     name, label = KEYNAMES.get(key, (None, None))
     if name is None:
         print(f'Unknown key {key}; using default symbol')
@@ -194,6 +196,8 @@ def keyname(key):
     return name
 
 def keylabel(key):
+    if key is None:
+        return ''
     name, label = KEYNAMES.get(key, (None, None))
     if name is None:
         print(f'Unknown key {key}; using default symbol')

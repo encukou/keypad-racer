@@ -1,5 +1,6 @@
 import struct
 import math
+import time
 
 import pyglet
 
@@ -87,8 +88,7 @@ class CarGroup:
         view.setup(self.car_prog, self.line_prog)
         ts = bytearray()
         for car in self.cars:
-            if car.dirty:
-                car.update_group()
+            car.update_group()
             ts.append(round(float(car.anim_t)*255))
         self.t_vbo.write(ts)
         if self.cars:
@@ -126,7 +126,7 @@ class Car:
         self.anim_t = ConstantValue(0)
         self.view_rect = self.get_view_rect()
         self.keypad = None
-        self.is_crashed = False
+        self.crashed = False
         self.crash_callback = None
         self.group.circuit.cars.append(self)
 
@@ -215,6 +215,14 @@ class Car:
                     struct.pack(LINE_FORMAT, *self.pos)] * (HISTORY_SIZE+2)
                 self.dirty = True
                 self.view_rect = self.get_view_rect()
+                @fork
+                async def _f():
+                    rot_speed = 0.5
+                    while self.crashed:
+                        self.orientation += rot_speed
+                        self.orientation %= math.tau
+                        rot_speed *= 0.99
+                        await Wait(1/60)
                 await Wait(duration*(1-dest_t))
                 await Wait(math.log(self.speed*3+1) + 1.5)
                 self.crashed = False

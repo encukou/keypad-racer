@@ -34,7 +34,7 @@ def global_key_event(action, is_pressed):
             window.fullscreen = True
 
 try:
-    conf = Path('settings.conf').read_text()
+    conf = Path('keypad_racer.conf').read_text()
 except FileNotFoundError:
     kbd.attach_handler(global_key_event)
     tutorial(ctx, palette, kbd, window)

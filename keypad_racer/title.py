@@ -204,7 +204,9 @@ class TitleBottom(KeypadScene):
             return
         victim = self.players.pop()
         victim.unassign_all_keys(self.kbd)
-        self.window.remove_view(self.window.views[-1])
+        for view in self.window.views:
+            if getattr(view, 'keypad') == victim:
+                self.window.remove_view(view)
         self.repopulate_layouts()
         self.update()
 
