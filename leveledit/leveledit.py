@@ -706,7 +706,7 @@ class Bezier:
 
     async def subdivide(self):
         EPSILON = 0.001
-        EPSILON2 = 0.1
+        EPSILON2 = 0.01
         EPSILON3 = 0.00001
         nums = itertools.count()
         self.subdivisions = []

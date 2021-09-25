@@ -16,17 +16,60 @@ def get_font(ctx):
     return ctx.extra.font
 
 class Text:
-    def __init__(self, ctx, chars, ypos=0, scale=1, outline=False, color=(1,1,1,1)):
+    def __init__(self, ctx, chars, ypos=0, scale=1, outline=False, color=(1,1,1,1), align=0.5):
+        self.chars = chars
         self.ctx = ctx
-        self.font = font = get_font(ctx)
+        self.font = get_font(ctx)
         self.pos = 0, ypos
+        self.scale = scale
+        self.align = align
+
+        vertices, width = self.get_vertices(chars)
+
+        self.text_vbo = ctx.buffer(vertices)
+        self.text_prog = ctx.program(
+            vertex_shader=resources.get_shader('shaders/text.vert'),
+            fragment_shader=resources.get_shader('shaders/text.frag'),
+        )
+        self.text_prog['atlas_tex'] = 0
+        self.text_vao = ctx.vertex_array(
+            self.text_prog,
+            [
+                (self.text_vbo, '2i1 4f2 4f2 2f2', 'uv', 'plane', 'atlas', 'position'),
+            ],
+        )
+        def vec4(n):
+            return tuple(ConstantValue(n) for i in range(4))
+        def vec4from(x):
+            return tuple(ConstantValue(n) for n in x)
+        if outline:
+            self.body_color = vec4(0.0)
+            self.outline_color = vec4from(color)
+        else:
+            self.body_color = vec4from(color)
+            self.outline_color = vec4(0.0)
+        self.num_vertices = len(vertices) // 22
+        self.width = width
+
+    def update(self, new_chars):
+        if self.chars == new_chars:
+            return
+        self.chars = new_chars
+        vertices, width = self.get_vertices(new_chars)
+        self.num_vertices = len(vertices) // 22
+        self.text_vbo.orphan(len(vertices))
+        self.text_vbo.write(vertices)
+        self.width = width
+
+    def get_vertices(self, chars):
         ypos = 0
         width = 0
+        scale = self.scale
 
         vertices = bytearray()
         def layout_line(position, glyphs, ypos):
             nonlocal width
-            position = -position/2
+            position = -position * self.align
             for glyph in glyphs:
                 if glyph.atlas_bounds[2] > 0:
                     for u, v in (1, 0), (1, 0), (0, 0), (1, 1), (0, 1), (0, 1): 
@@ -50,43 +93,26 @@ class Text:
                 position = 0
                 ypos -= scale
                 continue
-            glyph = font.get_glyph(char, 'italic')
+            glyph = self.font.get_glyph(char, 'italic')
             glyphs.append(glyph)
             position += glyph.advance * scale
         layout_line(position, glyphs, ypos)
+        return vertices, width
 
-        text_vbo = ctx.buffer(vertices)
-        self.text_prog = ctx.program(
-            vertex_shader=resources.get_shader('shaders/text.vert'),
-            fragment_shader=resources.get_shader('shaders/text.frag'),
-        )
-        self.text_prog['atlas_tex'] = 0
-        self.text_vao = ctx.vertex_array(
-            self.text_prog,
-            [
-                (text_vbo, '2i1 4f2 4f2 2f2', 'uv', 'plane', 'atlas', 'position'),
-            ],
-        )
-        def vec4(n):
-            return tuple(ConstantValue(n) for i in range(4))
-        def vec4from(x):
-            return tuple(ConstantValue(n) for n in x)
-        if outline:
-            self.body_color = vec4(0.0)
-            self.outline_color = vec4from(color)
+    def draw(self, view, override=None):
+        if override:
+            self.text_prog['viewport'] = view.viewport
+            for k, v in override.items():
+                self.text_prog[k] = v
         else:
-            self.body_color = vec4from(color)
-            self.outline_color = vec4(0.0)
-        self.width = width
-
-    def draw(self, view):
-        view.setup(self.text_prog)
+            view.setup(self.text_prog)
         self.font.texture.use(location=0)
         self.text_prog['pos'] = self.pos
         self.text_prog['body_color'] = self.body_color
         self.text_prog['outline_color'] = self.outline_color
         self.text_vao.render(
             self.ctx.TRIANGLE_STRIP,
+            vertices=self.num_vertices,
         )
 
 def grouper(iterable, n, fillvalue=None):

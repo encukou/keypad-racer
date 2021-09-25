@@ -47,6 +47,7 @@ def tutorial(ctx, palette, kbd, window, end_callback=None):
     keypad.pos = 0, -9
 
     car_scene = TutorialCarScene(car, keypad)
+    car_scene.draw_stats = False
     car_scene_view = View(ctx, car_scene)
     window.add_view(car_scene_view)
     unblock_keypad()

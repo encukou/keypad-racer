@@ -136,5 +136,12 @@ class View:
     def screen_to_grid(self, x, y):
         return self.view_to_grid(*self.screen_to_view(x, y))
 
+    def view_to_grid_now(self, x, y):
+        xs, ys, xz, yz = self._params
+        return (
+            x * float(xz.end) + float(xs.end),
+            y * float(yz.end) + float(ys.end),
+        )
+
     def draw(self):
         self.scene.draw(self)

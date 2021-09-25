@@ -129,6 +129,11 @@ class Car:
         self.crashed = False
         self.crash_callback = None
         self.group.circuit.cars.append(self)
+        self.lap = 1
+        self.max_lap = 1
+        self.lap_start_time = time.monotonic()
+        self.lap_times = []
+        self.crash_count = 0
 
     def update_group(self):
         if not self.dirty:
@@ -168,7 +173,7 @@ class Car:
         vx += dx
         vy += dy
         new = x + vx, y + vy
-        destination = new
+        final_pos = new
         blocker = None
         dest_t = 1
         if (vx or vy) and not self.group.circuit.is_on_track(*new):
@@ -176,6 +181,7 @@ class Car:
             if blocker:
                 dest_t = blocker[2]
                 respawn_pos = self.find_respawn_pos(blocker)
+                final_pos = respawn_pos
         self.velocity = vx, vy
         buf = struct.pack(LINE_FORMAT, *new)
         self.history = [
@@ -204,6 +210,7 @@ class Car:
         else:
             waitblock = Blocker()
             self.crashed = True
+            self.crash_count += 1
             if self.crash_callback:
                 self.crash_callback()
             @fork
@@ -230,6 +237,19 @@ class Car:
         self.view_rect = self.get_view_rect()
         if self.keypad:
             self.keypad.pause(waitblock)
+        x, y = final_pos
+        if x < 20:
+            lx, ly = self.last_pos
+            if (y < 0) != (ly < 0):
+                if y < 0:
+                    self.lap -= 1
+                else:
+                    self.lap += 1
+                if self.lap > self.max_lap:
+                    self.max_lap = self.lap
+                    new_start = time.monotonic()
+                    self.lap_times.append(new_start - self.lap_start_time)
+                    self.lap_start_time = new_start
         return duration
 
     def play_sounds(self, vx, vy, duration, dest_t, crash=False):

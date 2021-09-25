@@ -186,12 +186,12 @@ class Window:
             if col > 0:
                 w -= border
                 x += border
-            if col < row_count-1:
+            if col < col_count-1:
                 w -= border
             if row > 0:
                 h -= border
                 y += border
-            if row < col_count-1:
+            if row < row_count-1:
                 h -= border
             view.set_viewport((x, y, w, h))
 
