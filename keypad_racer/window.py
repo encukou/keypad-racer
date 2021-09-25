@@ -8,6 +8,7 @@ import pyglet
 import moderngl
 
 from . import resources
+from .anim import fork, Wait
 
 if platform.system() == "Darwin":
     pyglet.options["shadow_window"] = False
@@ -138,19 +139,70 @@ class Window:
                 return view
 
     def on_resize(self, w, h):
-        BORDER = max(w/100, h/100)
-        w, h = self.pyglet_window.get_framebuffer_size()
-        for view, viewport in zip(self.views, (
-            (0, 0, w/2-BORDER/2, h),
-            (w/2+BORDER, 0, w/2-BORDER/2, h),
-        )):
-            view.viewport = viewport
+        width, height = self.pyglet_window.get_framebuffer_size()
+        border = max(width/100, height/100)
+        normal_views = []
+        bottom = 0
+        for view in self.views:
+            pin_side = view.scene.pin_side
+            if pin_side:
+                if pin_side == 'top':
+                    top_size = height * 0.15
+                    orig_h = height
+                    height -= top_size
+                    view.set_viewport((0, height, width, top_size))
+                    height -= border
+                else:
+                    bottom_size = height * 0.25
+                    orig_h = height
+                    height -= bottom_size - border
+                    bottom += bottom_size + border
+                    view.set_viewport((0, 0, width, bottom_size))
+            else:
+                normal_views.append(view)
+        n = len(normal_views)
+        row_count, col_count = {
+            1: (1, 1),
+            2: (1, 2),
+            3: (1, 3),
+            4: (2, 2),
+            5: (2, 3),
+            6: (2, 3),
+            7: (2, 4),
+            8: (2, 4),
+            9: (3, 3),
+        }.get(n, (1, n))
+        for i, view in enumerate(normal_views):
+            row = row_count - i % row_count - 1
+            col = i // row_count
+
+            w = width // col_count
+            h = height // row_count
+            x = col * width // col_count
+            y = bottom + row * height // row_count
+            """
+            if col > 0:
+                w -= border
+                x += border
+            if col < row_count-1:
+                w -= border
+            if row > 0:
+                h -= border
+                y -= border
+            if row < col_count-1:
+                h -= border
+            """
+            print(n,row, col, row_count, col_count, (x, y, w/2, h))
+            view.set_viewport((x, y, w, h))
 
     def add_view(self, view):
+        w = self.pyglet_window.width
+        h = self.pyglet_window.height
+        view.viewport = w, 0, 0, h
         self.views.append(view)
-        self.on_resize(self.pyglet_window.width, self.pyglet_window.height)
+        self.on_resize(w, h)
 
-    def remove_view(self, view):
+    def remove_view(self, view, duration=0):
         try:
             self.views.remove(view)
         except ValueError:
@@ -169,3 +221,7 @@ class Window:
         else:
             self.pyglet_window.set_fullscreen(False)
         self.on_resize(self.pyglet_window.width, self.pyglet_window.height)
+
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+

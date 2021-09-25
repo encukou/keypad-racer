@@ -33,6 +33,7 @@ void main() {
     v_feature = feature;
     vec2 duv = uv;
     duv.x *= (decal_size.z)/decal_size.y;
+    duv *= decal_size.x;
     duv = duv / 2 / button_size / v_feature.x + 0.5;
     if (decal_size.y > 0) {
         v_decal = decal.xy + decal.zw * duv + button_size*0.001;

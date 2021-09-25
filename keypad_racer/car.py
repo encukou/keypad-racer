@@ -209,7 +209,7 @@ class Car:
                 self.dirty = True
                 self.view_rect = self.get_view_rect()
                 await Wait(duration*(1-dest_t))
-                await Wait(math.log(self.speed/3+1) + 0.5)
+                await Wait(math.log(self.speed*3+1) + 1.5)
                 self.crashed = False
                 waitblock.unblock()
         self.view_rect = self.get_view_rect()

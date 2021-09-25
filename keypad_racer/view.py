@@ -38,15 +38,26 @@ class View:
 
     @property
     def viewport(self):
-        return self._viewport
+        return tuple(float(c) for c in self._viewport)
     @viewport.setter
     def viewport(self, res):
-        self._viewport = res
+        self._viewport = tuple(ConstantValue(x) for x in res)
+        self.last_view_rect = None
+        self.adjust_zoom()
+
+    def set_viewport(self, res, duration=0):
+        if duration == 0:
+            self._viewport = tuple(ConstantValue(x) for x in res)
+        else:
+            self._viewport = tuple(
+                AnimatedValue(m, x, duration)
+                for m, x in zip(self._viewport, res)
+            )
         self.last_view_rect = None
         self.adjust_zoom()
 
     def set_view_rect(self, view_rect, duration=None):
-        if view_rect != self.last_view_rect:
+        if view_rect != self.last_view_rect or duration:
             if duration is None:
                 duration = 0.75
                 if self.last_view_rect is None:
@@ -71,7 +82,7 @@ class View:
         return self._params.scale_x, self._params.scale_y
     @scale.setter
     def scale(self, scale):
-        scale_max = self._viewport[3] / 7
+        scale_max = self._viewport[3].end / 7
         if scale > scale_max:
             scale = scale_max
         if scale < 1:
@@ -86,24 +97,26 @@ class View:
     def adjust_pan(self, dx, dy, duration=0.1):
         if self.scene.fixed_projection:
             return
-        dx *= self.scale[0].end*self.zoom.end/self.viewport[2]*2
-        dy *= self.scale[1].end*self.zoom.end/self.viewport[3]*2
+        dx *= self.scale[0].end*self.zoom.end/self._viewport[2].end*2
+        dy *= self.scale[1].end*self.zoom.end/self._viewport[3].end*2
         self.pan = (
             AnimatedValue(self.pan[0], self.pan[0].end - dx, duration),
             AnimatedValue(self.pan[1], self.pan[1].end - dy, duration),
         )
 
     def setup(self, *programs):
-        self.ctx.scissor = tuple(self._viewport)
-        self.ctx.viewport = tuple(self._viewport)
+        viewport = self.viewport
+        params = self._params
+        self.ctx.scissor = viewport
+        self.ctx.viewport = viewport
         params = (
-            float(self._params.x) + float(self.pan[0]),
-            float(self._params.y) + float(self.pan[1]),
-            float(self._params.scale_x) * float(self.zoom),
-            float(self._params.scale_y) * float(self.zoom),
+            float(params.x) + float(self.pan[0]),
+            float(params.y) + float(self.pan[1]),
+            float(params.scale_x) * float(self.zoom),
+            float(params.scale_y) * float(self.zoom),
         )
         for program in programs:
-            program['viewport'] = tuple(self._viewport)
+            program['viewport'] = viewport
             program['projection_params'] = params
 
     def hit_test(self, x, y):
@@ -111,7 +124,7 @@ class View:
         return -1 <= x <= 1 and -1 <= y <= 1
 
     def screen_to_view(self, x, y):
-        x1, y1, w, h = self._viewport
+        x1, y1, w, h = self.viewport
         return ((x - x1) / w * 2 - 1, (y - y1) / h * 2 - 1)
 
     def view_to_grid(self, x, y):

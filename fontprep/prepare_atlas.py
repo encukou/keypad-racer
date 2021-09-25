@@ -19,7 +19,7 @@ CHARS = string.printable + '÷'
 with open('charset.txt', 'w') as f:
     print(*(ord(c) for c in CHARS), file=f)
 
-CHARS2 = '←↑→↓⇦×⇫∗☒⇥⇤⁇↲∧⊘☼⌥⇧≡▼▲⇐⇒↹₤↰↨⊘☒⌘◆‖⌃⌒◇①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳▫'
+CHARS2 = '←↑→↓⇦×⇫∗☒⇥⇤⁇↲∧⊘☼⌥⇧≡▼▲⇐⇒↹₤↰↨⊘☒⌘◆‖⌃⌒◇①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳▫␣'
 
 with open('charset_sym.txt', 'w') as f:
     print(*(ord(c) for c in sorted(set(CHARS2))), file=f)
@@ -43,7 +43,7 @@ subprocess.run(
         '-square',
         '-errorcorrection', 'auto-full',
         '-overlap',
-        '-pxrange', '20',
+        '-pxrange', '2',
     ],
     check=True,
 )

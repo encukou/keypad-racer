@@ -22,12 +22,10 @@ and Mac; on other platforms you'll probably need a compiler and headers.)
 
 ## The controls
 
-Each player needs 9 keys, ideally in a grid, plus 3 more keys.
+Each player needs 9 keys, ideally in a grid.
 The best way to play is on a grid – a numeric keypad:
 
-    ┌───────┬───────┬───────┐
-    │   ↹   │   /   │   *   │
-    ┢━━━━━━━╈━━━━━━━╈━━━━━━━┫
+    ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
     ┃       ┃       ┃       ┃
     ┃   7   ┃   8   ┃   9   ┃
     ┃       ┃       ┃       ┃
@@ -44,10 +42,8 @@ The best way to play is on a grid – a numeric keypad:
 If you don't have one and/or want to play with friends,
 share a keyboard -- there are enough keys for 3 people. By default they are:
 
-       Player 1        Player 2        Player 3
-    ┌───┬───┬───┐   ┌───┬───┬───┐   ┌───┬───┬───┐
-    │ 1 │ 2 │ 3 │   │ 5 │ 6 │ 7 │   │ 9 │ 0 │ - │
-    └┲━━┷┳━━┷┳━━┷┓  └┲━━┷┳━━┷┳━━┷┓  └┲━━┷┳━━┷┳━━┷┓
+        Player 1        Player 2        Player 3
+     ┏━━━┳━━━┳━━━┓   ┏━━━┳━━━┳━━━┓   ┏━━━┳━━━┳━━━┓
      ┃ Q ┃ W ┃ E ┃   ┃ T ┃ Y ┃ U ┃   ┃ O ┃ P ┃ [ ┃
      ┗┳━━┻┳━━┻┳━━┻┓  ┗┳━━┻┳━━┻┳━━┻┓  ┗┳━━┻┳━━┻┳━━┻┓
       ┃ A ┃ S ┃ D ┃   ┃ G ┃ H ┃ J ┃   ┃ L ┃ ; ┃ ' ┃

@@ -99,6 +99,9 @@ void main() {
     float dist = (0.45 - median(sample.r, sample.g, sample.b))/2;
     vec3 btncolor = color;
     vec3 decalcolor = vec3(1.0);
+    if (0.2126 * btncolor.r + 0.7152 * btncolor.g + 0.0722 * btncolor.g > 0.5) {
+        decalcolor = vec3(0.0);
+    }
     if (m_blocked[v_pad.x+1][v_pad.y+1] > 0.5) {
         btncolor = vec3(0.4);
     }

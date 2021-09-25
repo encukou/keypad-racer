@@ -19,9 +19,13 @@ class Text:
     def __init__(self, ctx, chars, ypos=0, scale=1, outline=False, color=(1,1,1,1)):
         self.ctx = ctx
         self.font = font = get_font(ctx)
+        self.pos = 0, ypos
+        ypos = 0
+        width = 0
 
         vertices = bytearray()
         def layout_line(position, glyphs, ypos):
+            nonlocal width
             position = -position/2
             for glyph in glyphs:
                 if glyph.atlas_bounds[2] > 0:
@@ -35,6 +39,7 @@ class Text:
                             ypos,
                         ))
                 position += glyph.advance * scale
+                width = max(width, position*2)
             glyphs.clear()
 
         glyphs = []
@@ -72,10 +77,12 @@ class Text:
         else:
             self.body_color = vec4from(color)
             self.outline_color = vec4(0.0)
+        self.width = width
 
     def draw(self, view):
         view.setup(self.text_prog)
         self.font.texture.use(location=0)
+        self.text_prog['pos'] = self.pos
         self.text_prog['body_color'] = self.body_color
         self.text_prog['outline_color'] = self.outline_color
         self.text_vao.render(
@@ -127,7 +134,6 @@ class Font:
                         faces_seq[face].glyphs[chr(point)] = glyph
 
         self.faces = {f.name: f for f in faces_seq}
-        print(self.faces)
 
     def get_glyph(self, char, *font_names, fallback='☒'):
         for font_name in (*font_names, 'regular', 'fallback'):

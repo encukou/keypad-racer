@@ -21,7 +21,7 @@ SKIPS = {
 }
 
 class Keypad:
-    def __init__(self, ctx, car=None):
+    def __init__(self, ctx, car=None, color=None):
         self.ctx = ctx
         self.car = car
         if car:
@@ -30,6 +30,9 @@ class Keypad:
         self.callbacks = {}
         self.pos = 0, 0
         self.blocked = (0,) * 12
+        self.xblocked = [0] * 12
+        self.assignments = {}
+        self.player_name = None
 
         self.button_size = ConstantValue(1)
 
@@ -64,11 +67,14 @@ class Keypad:
                  'uv', 'pad', 'feature', 'decal', 'decal_size'),
             ],
         )
-        if car:
-            self.pad_prog['color'] = car.color
+        if color:
+            color = color
+        elif car:
+            color = car.color
         else:
-            self.pad_prog['color'] = Palette().player_color(0)
-        #self.pad_prog['atlas_tex'] = 0
+            color = Palette().player_color(0)
+        self.color = color
+        self.pad_prog['color'] = color
 
         self.update()
         self.enabled = True
@@ -89,6 +95,10 @@ class Keypad:
     def claim_layout(self, kbd, layout):
         for i, key in enumerate(layout):
             kbd.claim_key(key, self, i)
+
+    def unassign_all_keys(self, kbd):
+        for key in list(self.assignments.values()):
+            kbd.unclaim_key(key)
 
     def kbd(self, direction, is_pressed):
         if is_pressed and self.enabled:
@@ -119,38 +129,52 @@ class Keypad:
         if car is None:
             car = self.car
         if car is None:
-            return
-        x, y = car.pos
-        xx, yy = car.velocity
-        self.pos = x+xx, y+yy
+            xx = 1234
+            yy = 1234
+        else:
+            x, y = car.pos
+            xx, yy = car.velocity
+            self.pos = x+xx, y+yy
         self.blocked = tuple((
             *(
-                -1
-                if (x,y) == (-xx,-yy)
-                else bool(car.blocker_on_path_to(x, y))
+                -1 if (x,y) == (-xx,-yy)
+                else -1 if self.xblocked[x+y*3+4]
+                else 1 if (x+y*3+4) not in self.assignments
+                else bool(car.blocker_on_path_to(x, y)) if car
+                else 0
                 for x in (-1, 0, 1) for y in (-1, 0, 1)
             ),
             0, 0, 0,
         ))
 
-    def set_decal(self, button, char):
-        if char.startswith(' '):
-            char = char[1:]
-        if char.endswith(' '):
-            char = char[:-1]
-        print(repr(char))
-        if not char:
+    def assign_char(self, button, label, key):
+        if key is None:
+            self.assignments.pop(button, None)
+        else:
+            self.assignments[button] = key
+        if label == ' ':
+            pass
+        elif label.startswith(' '):
+            label = label[1:]
+        elif label.endswith(' '):
+            label = label[:-1]
+        if not label:
             data = bytes(12)
         else:
             self.font = get_font(self.ctx)
-            glyph = self.font.get_glyph(char, fallback='☼')
+            glyph = self.font.get_glyph(label, fallback='☼')
             if glyph is None:
                 data = bytes(14)
             else:
+                x, y, w, h = glyph.plane_bounds
+                ratio = 1
+                if w > h:
+                    ratio = w / h
                 data = struct.pack(
                     '=4e3e',
                     *glyph.atlas_bounds,
-                    *glyph.plane_bounds[1:],
+                    ratio, w, h,
                 )
         for i in range(6):
             self.kp_vbo.write(data, offset=24*(i+6*button)+10)
+        self.update()

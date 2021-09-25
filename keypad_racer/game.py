@@ -5,10 +5,12 @@ from .view import View
 from .scene import CarScene, KeypadScene
 from .car import CarGroup, Car
 from .palette import Palette
-from .keyboard import Keyboard, QWERTY_LAYOUT, NUMPAD_LAYOUT
+from .keyboard import Keyboard, QWERTY_LAYOUT, NUMPAD_LAYOUT, DVORAK_LAYOUT
 from .keypad import Keypad
 from .circuit import Circuit
 from .tutorial import tutorial
+from .anim import fork, Wait
+from .title import TitleTop, TitleBottom
 
 palette = Palette()
 kbd = Keyboard()
@@ -27,14 +29,29 @@ elif False:
     keypad.claim_layout(kbd, NUMPAD_LAYOUT)
     scene = CarScene(car, keypad)
     window.add_view(View(ctx, scene))
+elif False:
+    keypad = Keypad(ctx)
+    scene = KeypadScene(keypad, kbd)
+    window.add_view(View(ctx, scene))
+    keypad = Keypad(ctx)
+    scene = KeypadScene(keypad, kbd)
+    window.add_view(View(ctx, scene))
+elif False:
+    circuit = Circuit(ctx, 'okruh.png')
+    cars = CarGroup(ctx, circuit)
+    @fork
+    async def add_cars():
+        for i, layout in enumerate((NUMPAD_LAYOUT, QWERTY_LAYOUT, DVORAK_LAYOUT)):
+            car = Car(cars, palette.player_color(i), (i, 0))
+            keypad = Keypad(ctx, car)
+            keypad.claim_layout(kbd, layout)
+            scene = CarScene(car, keypad)
+            window.add_view(View(ctx, scene))
 else:
-    keypad = Keypad(ctx)
-    scene = KeypadScene(keypad, kbd)
+    scene = TitleTop(ctx, window, kbd)
     window.add_view(View(ctx, scene))
-    keypad = Keypad(ctx)
-    scene = KeypadScene(keypad, kbd)
+    scene = TitleBottom(ctx, window, kbd)  # this has titlescreen logic :/
     window.add_view(View(ctx, scene))
-
 
 def global_key_event(action, is_pressed):
     if action == 'fullscreen' and is_pressed:
