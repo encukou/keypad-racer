@@ -75,7 +75,6 @@ class Keypad:
 
     def draw(self, view):
         view.setup(self.pad_prog)
-        print(self, self.pos)
         self.pad_prog['pos'] = self.pos
         self.pad_prog['top_pos'] = 0, 0, 0
         self.pad_prog['button_size'] = self.button_size
@@ -130,7 +129,6 @@ class Keypad:
             ),
             0, 0, 0,
         ))
-        print(self, car.pos, self.pos)
 
     def set_decal(self, button, char):
         self.font = get_font(self.ctx)
@@ -143,9 +141,5 @@ class Keypad:
                 *glyph.atlas_bounds,
                 *glyph.plane_bounds[1:],
             )
-            print(glyph.atlas_bounds)
         for i in range(6):
             self.kp_vbo.write(data, offset=24*(i+6*button)+10)
-        #for i, b in enumerate(self.kp_vbo.read()):
-        #    if i%24 == 0: print()
-        #    print(b, end=',')

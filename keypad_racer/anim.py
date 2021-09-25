@@ -89,19 +89,24 @@ class Wait:
         yield self.time_to_wait
 
 class Blocker:
+    """A Future"""
     def __init__(self):
         self.done = False
         self.waiters = []
+        self.value = None
 
-    def unblock(self):
+    def unblock(self, value=None):
         self.done = True
+        self.value = value
         for waiter in self.waiters:
             waiter()
         self.waiters.clear()
+        return value
 
     def __await__(self):
         if not self.done:
             yield self
+        return self.value
 
 def cubic_inout(t):
     if t < 0.5:

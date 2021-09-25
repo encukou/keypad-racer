@@ -12,15 +12,15 @@ LINE_FORMAT = '=2h'
 LINE_STRIDE = struct.calcsize(LINE_FORMAT)
 
 ACTION_DIRECTIONS = {
-    0: (-1, +1),
-    1: ( 0, +1),
-    2: (+1, +1),
+    0: (-1, -1),
+    1: ( 0, -1),
+    2: (+1, -1),
     3: (-1,  0),
     4: ( 0,  0),
-    5: (+1, 0 ),
-    6: (-1, -1),
-    7: ( 0, -1),
-    8: (+1, -1),
+    5: (+1,  0),
+    6: (-1, +1),
+    7: ( 0, +1),
+    8: (+1, +1),
 }
 
 class CarGroup:
@@ -117,11 +117,12 @@ class Car:
         self._pos = pos
         self.last_pos = pos
         self.history = [struct.pack(LINE_FORMAT, *pos)] * (HISTORY_SIZE+2)
-        self.velocity = 0, 3
+        self.velocity = 0, 1
         self.dirty = True
         self.anim_t = ConstantValue(0)
         self.view_rect = self.get_view_rect()
         self.keypad = None
+        self.is_crashed = False
 
     def update_group(self):
         if not self.dirty:
@@ -157,7 +158,7 @@ class Car:
         duration = 0.5
         self.last_orientation = self._orientation
         x, y = self.last_pos = self.pos
-        vx, vy = self.velocity #= 0, 0
+        vx, vy = self.velocity
         vx += dx
         vy += dy
         self.velocity = vx, vy
@@ -189,7 +190,8 @@ class Car:
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
-            self.move(*xy)
+            return self.move(*xy)
+        return 0
 
     def get_view_rect(self):
         x, y = self.pos
