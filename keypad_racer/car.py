@@ -153,7 +153,7 @@ class Car:
     @property
     def pos(self):
         return self._pos
-    def _move(self, dx, dy):
+    def move(self, dx, dy):
         duration = 0.5
         self.last_orientation = self._orientation
         x, y = self.last_pos = self.pos
@@ -185,10 +185,11 @@ class Car:
         self.view_rect = self.get_view_rect()
         if self.keypad:
             self.keypad.pause(duration)
+        return duration
 
     def act(self, action):
         if (xy := ACTION_DIRECTIONS.get(action)):
-            self._move(*xy)
+            self.move(*xy)
 
     def get_view_rect(self):
         x, y = self.pos

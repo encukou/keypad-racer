@@ -27,6 +27,9 @@ class Keypad:
         if car:
             car.keypad = self
         self.font = None
+        self.callbacks = {}
+        self.pos = 0, 0
+        self.blocked = (0,) * 12
 
         self.button_size = ConstantValue(1)
 
@@ -72,10 +75,11 @@ class Keypad:
 
     def draw(self, view):
         view.setup(self.pad_prog)
+        print(self, self.pos)
         self.pad_prog['pos'] = self.pos
         self.pad_prog['top_pos'] = 0, 0, 0
         self.pad_prog['button_size'] = self.button_size
-        self.pad_prog['m_blocked'] = self.blocked
+        self.pad_prog['m_blocked'] = tuple(self.blocked)
         if self.font:
             self.font.texture.use(location=0)
         self.vao.render(
@@ -83,38 +87,50 @@ class Keypad:
             vertices=6*9,
         )
 
+    def claim_layout(self, kbd, layout):
+        for i, key in enumerate(layout):
+            kbd.claim_key(key, self, i)
+
     def kbd(self, direction, is_pressed):
         if is_pressed and self.enabled:
             if self.car:
                 self.car.act(direction)
+            if direction in self.callbacks:
+                self.callbacks[direction]()
+
+    def set_callback(self, button, action):
+        self.callbacks[button] = action
 
     @autoschedule
-    async def pause(self, duration):
-        self.button_size = AnimatedValue(self.button_size, -1, .2)
+    async def pause(self, blocker, fadeout_time=.2, fadein_time=.1):
+        self.button_size = AnimatedValue(self.button_size, -1, fadeout_time)
         self.enabled = False
-        await Wait(duration)
+        if isinstance(blocker, float):
+            blocker = Wait(blocker)
+        await blocker
         self.button_size = ConstantValue(0)
         self.enabled = True
         self.update()
-        self.button_size = AnimatedValue(self.button_size, 1, .1)
+        self.button_size = AnimatedValue(self.button_size, 1, fadein_time)
 
-    def update(self):
-        if not self.car:
-            self.pos = 0, 0
-            self.blocked = (0,) * 12
+    def update(self, car=None):
+        if car is None:
+            car = self.car
+        if car is None:
             return
-        x, y = self.car.pos
-        xx, yy = self.car.velocity
+        x, y = car.pos
+        xx, yy = car.velocity
         self.pos = x+xx, y+yy
         self.blocked = tuple((
             *(
                 -1
                 if (x,y) == (-xx,-yy)
-                else bool(self.car.blocker_on_path_to(x, y))
+                else bool(car.blocker_on_path_to(x, y))
                 for x in (-1, 0, 1) for y in (-1, 0, 1)
             ),
             0, 0, 0,
         ))
+        print(self, car.pos, self.pos)
 
     def set_decal(self, button, char):
         self.font = get_font(self.ctx)

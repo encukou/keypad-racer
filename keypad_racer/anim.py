@@ -53,20 +53,33 @@ class ConstantValue:
         return self
         yield
 
-def drive(it, dt):
+def drive(it, dt=0):
+    go = functools.partial(drive, it)
     try:
-        time_to_wait = next(it)
+        time_or_blocker = next(it)
     except StopIteration:
         return
-    time_to_wait = float(time_to_wait)
-    pyglet.clock.schedule_once(functools.partial(drive, it), time_to_wait)
+    if isinstance(time_or_blocker, Blocker):
+        time_or_blocker.waiters.append(go)
+    else:
+        time_to_wait = float(time_or_blocker)
+        pyglet.clock.schedule_once(go, time_to_wait)
 
 def autoschedule(coro):
     @functools.wraps(coro)
     def func(*args, **kwargs):
-        it = coro(*args, **kwargs).__await__()
+        blocker = Blocker()
+        async def wrap():
+            await coro(*args, **kwargs)
+            blocker.unblock()
+        it = wrap().__await__()
         drive(it, 0)
+        return blocker
     return func
+
+def fork(coro):
+    it = coro().__await__()
+    drive(it, 0)
 
 class Wait:
     def __init__(self, time_to_wait):
@@ -75,6 +88,20 @@ class Wait:
     def __await__(self):
         yield self.time_to_wait
 
+class Blocker:
+    def __init__(self):
+        self.done = False
+        self.waiters = []
+
+    def unblock(self):
+        self.done = True
+        for waiter in self.waiters:
+            waiter()
+        self.waiters.clear()
+
+    def __await__(self):
+        if not self.done:
+            yield self
 
 def cubic_inout(t):
     if t < 0.5:

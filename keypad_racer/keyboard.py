@@ -1,21 +1,39 @@
 import pyglet
 
+QWERTY_LAYOUT = (
+    pyglet.window.key.Z,
+    pyglet.window.key.X,
+    pyglet.window.key.C,
+    pyglet.window.key.A,
+    pyglet.window.key.S,
+    pyglet.window.key.D,
+    pyglet.window.key.Q,
+    pyglet.window.key.W,
+    pyglet.window.key.E,
+    pyglet.window.key._1,
+    pyglet.window.key._2,
+    pyglet.window.key._3,
+)
+
+NUMPAD_LAYOUT = (
+    pyglet.window.key.NUM_1,
+    pyglet.window.key.NUM_2,
+    pyglet.window.key.NUM_3,
+    pyglet.window.key.NUM_4,
+    pyglet.window.key.NUM_5,
+    pyglet.window.key.NUM_6,
+    pyglet.window.key.NUM_7,
+    pyglet.window.key.NUM_8,
+    pyglet.window.key.NUM_9,
+    pyglet.window.key.NUM_TAB,
+    pyglet.window.key.NUM_DIVIDE,
+    pyglet.window.key.NUM_MULTIPLY,
+)
+
 DEFAULT_MAP = {
     'keyboards': (
-        (
-            pyglet.window.key.Q,
-            pyglet.window.key.W,
-            pyglet.window.key.E,
-            pyglet.window.key.A,
-            pyglet.window.key.S,
-            pyglet.window.key.D,
-            pyglet.window.key.Z,
-            pyglet.window.key.X,
-            pyglet.window.key.C,
-            pyglet.window.key._1,
-            pyglet.window.key._2,
-            pyglet.window.key._3,
-        ),
+        NUMPAD_LAYOUT,
+        QWERTY_LAYOUT,
         (
             pyglet.window.key.T,
             pyglet.window.key.Y,
@@ -44,20 +62,6 @@ DEFAULT_MAP = {
             pyglet.window.key._0,
             pyglet.window.key.MINUS,
         ),
-        (
-            pyglet.window.key.NUM_7,
-            pyglet.window.key.NUM_8,
-            pyglet.window.key.NUM_9,
-            pyglet.window.key.NUM_4,
-            pyglet.window.key.NUM_5,
-            pyglet.window.key.NUM_6,
-            pyglet.window.key.NUM_1,
-            pyglet.window.key.NUM_2,
-            pyglet.window.key.NUM_3,
-            pyglet.window.key.NUM_TAB,
-            pyglet.window.key.NUM_DIVIDE,
-            pyglet.window.key.NUM_MULTIPLY,
-        ),
     ),
     'actions': {
         'start': pyglet.window.key.SPACE,
@@ -69,72 +73,59 @@ DEFAULT_MAP = {
 
 class Keyboard:
     def __init__(self):
-        self.load_mapping(DEFAULT_MAP)
-        self.pads = {}
+        self.mapping = {
+            pyglet.window.key.F11: (None, 'fullscreen')
+        }
         self.global_handlers = []
+        #self.load_mapping(DEFAULT_MAP)
+        #self.pads = {}
 
     def attach_to_window(self, window):
         window.event(self.on_key_press)
         window.event(self.on_key_release)
 
+    def claim_key(self, key, keypad, button, previous_key=None):
+        if key in self.mapping:
+            prev_keypad, prev_button = self.mapping.get(previous_key, (None, None))
+            if prev_keypad:
+                self.mapping[previous_key] = prev_keypad, prev_button
+                prev_decal = keyname(previous_key)
+                prev_keypad.set_decal(prev_button, prev_decal)
+            else:
+                del self.mapping[key]
+                #prev_keypad.set_decal(prev_button, ' ')
+        self.mapping[key] = keypad, button
+        keypad.set_decal(button, keyname(key))
+
+    def on_key_press(self, key, mod):
+        self.key_state_changed(key, mod, True)
+
+    def on_key_release(self, key, mod):
+        self.key_state_changed(key, mod, False)
+
+    def key_state_changed(self, key, mod, is_pressed):
+        action = self.mapping.get(key)
+        if action:
+            keypad, button = action
+            if keypad:
+                keypad.kbd(button, is_pressed)
+            else:
+                for handler in self.global_handlers:
+                    handler(button, is_pressed)
+
     def attach_handler(self, handler):
         self.global_handlers.append(handler)
 
-    def load_mapping(self, mapping):
-        self.action_map = {}
-        self.keyboards = set()
-        try:
-            for kbdi, kbd in enumerate(mapping['keyboards']):
-                for keyi, key in enumerate(kbd):
-                    self.map_key(key, (kbdi, keyi))
-                    self.keyboards.add(kbdi)
-            for key in 'start', 'fullscreen', 'exit':
-                self.map_key(mapping['actions'][key], (None, key))
-        except (TypeError, KeyError):
-            if mapping is DEFAULT_MAP:
-                raise
-            self.load_mapping(DEFAULT_MAP)
-
-    def map_key(self, key, action):
-        # is the action somewhere already?
-        prev_key = None
-        for tested_key, tested_act in self.action_map.values():
-            if tested_act == action:
-                prev_key = tested_key
-                break
-        if prev_key:
-            if key in self.action_map:
-                del self.action_map[prev_key]
-            else:
-                self.action_map[prev_key] = self.action_map[key]
-        self.action_map[key] = action
-
-    def on_key_press(self, key, mod):
-        if action := self.action_map.get(key):
-            self.trigger_evt(action, True)
-
-    def on_key_release(self, key, mod):
-        if action := self.action_map.get(key):
-            self.trigger_evt(action, False)
-
-    def trigger_evt(self, evt, is_pressed):
-        pad_i, act = evt
-        if pad := self.pads.get(pad_i):
-            pad.kbd(act, is_pressed)
-        for handler in self.global_handlers:
-            handler(pad_i, act, is_pressed)
-
-    def set_pad(self, index, pad):
-        self.pads[index] = pad
-
+def keyname(key):
+    return KEYNAMES.get(key, DEFAULT_DECAL)
 
 if __name__ == '__main__':
     # Generate the skeleton for the keynames:
     import pprint
     pprint.pprint(dict.fromkeys(dir(pyglet.window.key), ''))
 
-DEFAULT = '☼'
-KEYNAMES = {
+DEFAULT_DECAL = '▫'
+KEYNAMES = {getattr(pyglet.window.key, name):label for name, label in {
     'A': 'A',
     'AMPERSAND': '&',
     'APOSTROPHE': "'",
@@ -170,29 +161,29 @@ KEYNAMES = {
     'ESCAPE': '☒',
     'EXCLAMATION': '!',
     #'EXECUTE': '',
-    'F': 'F',
-    'F1': 'f1',
-    'F10': 'f10',
-    'F11': 'f11',
-    'F12': 'f12',
-    'F13': 'f13',
-    'F14': 'f14',
-    'F15': 'f15',
-    'F16': 'f16',
-    'F17': 'f17',
-    'F18': 'f18',
-    'F19': 'f19',
-    'F2': 'f2',
-    'F20': 'f20',
-    'F3': 'f3',
-    'F4': 'f4',
-    'F5': 'f5',
-    'F6': 'f6',
-    'F7': 'f7',
-    'F8': 'f8',
-    'F9': 'f9',
+    'F': '◇',
+    'F1': '①',
+    'F10': '⑩',
+    'F11': '⑪',
+    'F12': '⑫',
+    'F13': '⑬',
+    'F14': '⑭',
+    'F15': '⑮',
+    'F16': '⑯',
+    'F17': '⑰',
+    'F18': '⑱',
+    'F19': '⑲',
+    'F2': '②',
+    'F20': '⑳',
+    'F3': '③',
+    'F4': '④',
+    'F5': '⑤',
+    'F6': '⑥',
+    'F7': '⑦',
+    'F8': '⑧',
+    'F9': '⑨',
     #'FIND': '',
-    'FUNCTION': 'fn',
+    'FUNCTION': '☼',
     'G': 'G',
     'GRAVE': '`',
     'GREATER': '>',
@@ -240,10 +231,10 @@ KEYNAMES = {
     'NUM_END': '⇥',
     'NUM_ENTER': '↲',
     'NUM_EQUAL': '=',
-    'NUM_F1': 'f1',
-    'NUM_F2': 'f2',
-    'NUM_F3': 'f3',
-    'NUM_F4': 'f4',
+    'NUM_F1': '①',
+    'NUM_F2': '②',
+    'NUM_F3': '③',
+    'NUM_F4': '④',
     'NUM_HOME': '⇤',
     'NUM_INSERT': '',
     'NUM_LEFT': '←',
@@ -313,4 +304,4 @@ KEYNAMES = {
     '_7': '7',
     '_8': '8',
     '_9': '9',
-}
+}.items()}

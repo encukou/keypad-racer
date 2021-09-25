@@ -19,7 +19,7 @@ ctx = window.ctx
 for scene in tutorial(ctx, pal, kbd):
     window.add_view(View(ctx, scene))
 
-def global_key_event(car, action, is_pressed):
+def global_key_event(action, is_pressed):
     if action == 'fullscreen' and is_pressed:
         if window.fullscreen:
             window.fullscreen = False

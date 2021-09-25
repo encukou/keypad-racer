@@ -2,7 +2,7 @@
 Needs pillow and msdf-atlas-gen.
 
 After running this, recompress the resulting PNG for faster loading:
-    pngcrush -f 0 fontprep/font.png game/font.png
+    pngcrush -f 0 -force fontprep/font.png keypad_racer/font.png
 """
 
 import subprocess
@@ -19,10 +19,10 @@ CHARS = string.printable + '÷'
 with open('charset.txt', 'w') as f:
     print(*(ord(c) for c in CHARS), file=f)
 
-CHARS2 = '←↑→↓⇦×⇫∗☒⇥⇤⁇↲∧⊘☼⌥⇧≡▼▲⇐⇒↹₤↰↨⊘☒⌘◆‖⌃⌒'
+CHARS2 = '←↑→↓⇦×⇫∗☒⇥⇤⁇↲∧⊘☼⌥⇧≡▼▲⇐⇒↹₤↰↨⊘☒⌘◆‖⌃⌒◇①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳▫'
 
 with open('charset_sym.txt', 'w') as f:
-    print(*(ord(c) for c in sorted(CHARS2)), file=f)
+    print(*(ord(c) for c in sorted(set(CHARS2))), file=f)
 
 subprocess.run(
     [
