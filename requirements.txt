@@ -1,4 +1,5 @@
-moderngl
-pyglet
-pypng
-importlib_resources; python_version < '3.9'
+glcontext==2.3.4
+moderngl==5.6.4
+pyglet==1.5.21
+pypng==0.0.21
+importlib_resources==5.2.2; python_version < '3.9'
