@@ -42,13 +42,12 @@ current directory.
 
 The game starts with a tutorial – go through it!
 
-Here's what it doesn't teach:
+It doesn't teach about the title screen, though::
 
-* Keyboard mappings can be changed by HOLDING a button on the screen
-  with a MOUSE, and pressing the desired key.
+* Keyboard mappings can be changed by holding a button on the title screen
+  with a mouse, and pressing the desired key.
 
-* On the title screen, player color can be set using each player's
-  assigned keys.
+* You can press players' assigned keys to pick colors.
 
 
 ## The controls
