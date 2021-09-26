@@ -105,7 +105,7 @@ class View:
         )
 
     def setup(self, *programs):
-        viewport = self.viewport
+        viewport = tuple(round(c) for c in self.viewport)
         params = self._params
         self.ctx.scissor = viewport
         self.ctx.viewport = viewport
